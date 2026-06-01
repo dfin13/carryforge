@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.neuraloracle.app</string>
+    <key>CFBundleName</key>
+    <string>NeuralOracle</string>
+    <key>CFBundleVersion</key>
+    <string>2</string>
+    <key>CFBundleShortVersionString</key>
+    <string>0.9.1</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+
+    <!-- No Dock icon; runs as background agent -->
+    <key>LSUIElement</key>
+    <true/>
+
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+
+    <!-- URL Scheme: neuraloracle://query?text=...&preset=explain -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>com.neuraloracle.app</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>neuraloracle</string>
+            </array>
+        </dict>
+    </array>
+
+    <!-- Accessibility for CGEventTap global hotkey + AX text capture -->
+    <key>NSAccessibilityUsageDescription</key>
+    <string>NeuralOracle requires Accessibility to register global hotkeys and capture selected text from any application.</string>
+
+    <!-- Microphone for Voice Input -->
+    <key>NSMicrophoneUsageDescription</key>
+    <string>NeuralOracle uses your microphone for voice-to-text queries.</string>
+
+    <!-- Speech Recognition -->
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>NeuralOracle uses speech recognition to transcribe voice input.</string>
+
+    <!-- Screen Capture for Vision feature -->
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>NeuralOracle captures screenshots to send to vision-capable AI models.</string>
+
+    <!-- Allow localhost HTTP for Ollama -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsLocalNetworking</key>
+        <true/>
+        <key>NSExceptionDomains</key>
+        <dict>
+            <key>localhost</key>
+            <dict>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <true/>
+                <key>NSIncludesSubdomains</key>
+                <false/>
+            </dict>
+        </dict>
+    </dict>
+</dict>
+</plist>

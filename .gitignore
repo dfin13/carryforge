@@ -1,0 +1,30 @@
+# ─── Dependencies ────────────────────────────────────────────────
+node_modules/
+package-lock.json
+
+# ─── OS artifacts ────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─── Claude / AI tooling ─────────────────────────────────────────
+# These contain business logic, hooks, agent configs, and brain.
+# Do NOT commit to a public (or any shared) repository.
+.claude/
+.claude-flow/
+.swarm/
+.mcp.json
+
+# ─── Secrets and environment ─────────────────────────────────────
+.env
+.env.*
+*.env
+.envrc
+secrets/
+credentials/
+
+# ─── Build outputs and temp ──────────────────────────────────────
+*.log
+*.tmp
+*.swp
+dist/
+.cache/
