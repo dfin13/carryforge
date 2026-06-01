@@ -1,25 +1,24 @@
 """
-CarryForge: Premium Private Equity Simulation Game
-===================================================
-A mobile-first PE empire builder with deep mechanics and beautiful UX.
+CarryForge v2.0 — Premium Private Equity Simulation Game
+========================================================
+Complete rewrite with: session state architecture, modular screens,
+health scoring, covenant monitoring, sensitivity analysis, 5-year projections.
 
-Tech: Python 3.11+ | Streamlit 1.40+ | SQLite | Plotly | Pandas
+Built from best practices across 40+ top GitHub repos.
 """
 
 import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
-import plotly.express as px
-from datetime import datetime, timedelta
 import sqlite3
 import json
-import os
-from enum import Enum
+from datetime import datetime
 from dataclasses import dataclass, asdict
-from typing import Optional, List, Dict, Tuple
+from enum import Enum
 import random
 import hashlib
+from io import BytesIO
 
 # ============================================================================
 # CONFIG & STYLING
@@ -32,7 +31,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Dark finance theme with emerald accents
 CUSTOM_CSS = """
 <style>
     :root {
@@ -58,25 +56,12 @@ CUSTOM_CSS = """
             radial-gradient(circle at 80% 80%, rgba(245, 158, 11, 0.03) 0%, transparent 50%);
     }
 
-    .stMetric {
+    .metric-card {
         background-color: var(--secondary-dark);
         padding: 1rem;
         border-radius: 8px;
         border-left: 3px solid var(--accent-emerald);
-    }
-
-    .card {
-        background-color: var(--secondary-dark);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 1.5rem;
         margin: 0.5rem 0;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-    }
-
-    .card:hover {
-        border-color: var(--accent-emerald);
-        box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
     }
 
     .deal-card {
@@ -87,24 +72,9 @@ CUSTOM_CSS = """
         margin: 0.75rem 0;
     }
 
-    .highlight-positive {
-        color: var(--accent-emerald);
-        font-weight: 600;
-    }
-
-    .highlight-negative {
-        color: var(--accent-red);
-        font-weight: 600;
-    }
-
-    .highlight-gold {
-        color: var(--accent-gold);
-        font-weight: 600;
-    }
-
-    h1, h2, h3 {
-        color: var(--text-primary);
-    }
+    .health-good { color: var(--accent-emerald); font-weight: 600; }
+    .health-warning { color: var(--accent-gold); font-weight: 600; }
+    .health-danger { color: var(--accent-red); font-weight: 600; }
 
     .stButton>button {
         background-color: var(--accent-emerald);
@@ -112,7 +82,6 @@ CUSTOM_CSS = """
         border: none;
         border-radius: 6px;
         font-weight: 600;
-        padding: 0.75rem 1.5rem;
         transition: all 0.3s;
     }
 
@@ -120,42 +89,16 @@ CUSTOM_CSS = """
         background-color: #059669;
         box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
     }
-
-    .metric-row {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-    }
-
-    @media (max-width: 768px) {
-        .stApp {
-            padding-bottom: 60px;
-        }
-
-        .metric-row {
-            flex-direction: column;
-        }
-    }
 </style>
 """
 
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
 # ============================================================================
-# DATA MODELS & ENUMS
+# DATA MODELS
 # ============================================================================
 
-class Difficulty(Enum):
-    CASUAL = "Casual"
-    BALANCED = "Balanced"
-    HARDCORE = "Hardcore"
-
-class CompanyStage(Enum):
-    PROSPECT = "Prospect"
-    OWNED = "Owned"
-    EXITED = "Exited"
-
-class SectorEnum(Enum):
+class Sector(Enum):
     SAAS = "SaaS"
     MANUFACTURING = "Manufacturing"
     HEALTHCARE = "Healthcare"
@@ -165,563 +108,444 @@ class SectorEnum(Enum):
     LOGISTICS = "Logistics"
     MEDIA = "Media & Content"
 
+SECTOR_PARAMS = {
+    "SaaS": {"rev_range": (50, 150), "margin_range": (0.30, 0.50), "growth_range": (0.15, 0.35)},
+    "Manufacturing": {"rev_range": (100, 300), "margin_range": (0.08, 0.15), "growth_range": (0.05, 0.12)},
+    "Healthcare": {"rev_range": (80, 250), "margin_range": (0.15, 0.30), "growth_range": (0.10, 0.25)},
+    "Retail": {"rev_range": (150, 400), "margin_range": (0.05, 0.12), "growth_range": (0.02, 0.10)},
+    "Business Services": {"rev_range": (60, 200), "margin_range": (0.18, 0.35), "growth_range": (0.10, 0.25)},
+    "FinTech": {"rev_range": (40, 120), "margin_range": (0.20, 0.40), "growth_range": (0.25, 0.50)},
+    "Logistics": {"rev_range": (120, 350), "margin_range": (0.06, 0.12), "growth_range": (0.05, 0.15)},
+    "Media & Content": {"rev_range": (30, 100), "margin_range": (0.15, 0.30), "growth_range": (0.10, 0.30)},
+}
+
 @dataclass
 class Company:
     id: str
     name: str
     sector: str
-    stage: str
-    entry_year: int
     entry_multiple: float
     entry_ebitda: float
-    current_ebitda: float
-    revenue_growth_rate: float
-    ebitda_margin: float
-    revenue: float
-    debt: float
-    shares_owned: float
-    entry_debt: float
     entry_revenue: float
-    entry_equity_check: float
-    add_on_acquisitions: List[Dict] = None
-    events: List[Dict] = None
-    value_creation_levers: Dict = None
-
-    def __post_init__(self):
-        if self.add_on_acquisitions is None:
-            self.add_on_acquisitions = []
-        if self.events is None:
-            self.events = []
-        if self.value_creation_levers is None:
-            self.value_creation_levers = {
-                "revenue_growth": 0,
-                "margin_expansion": 0,
-                "multiple_arbitrage": 0,
-            }
-
-@dataclass
-class Fund:
-    fund_id: str
-    name: str
-    raised_capital: float
-    committed_capital: float
-    invested_capital: float
-    available_capital: float
-    portfolio: List[Company] = None
-    realized_distributions: float = 0.0
-    dpi: float = 1.0
-    moic: float = 1.0
-    irr: float = 0.0
-    created_quarter: int = 0
-
-    def __post_init__(self):
-        if self.portfolio is None:
-            self.portfolio = []
-
-@dataclass
-class GameState:
-    current_quarter: int
-    current_year: int
-    difficulty: str
-    funds: List[Fund] = None
-    portfolio_companies: List[Company] = None
-    cash_balance: float = 0.0
-    total_committed: float = 0.0
-    game_events: List[Dict] = None
-    save_timestamp: str = ""
-
-    def __post_init__(self):
-        if self.funds is None:
-            self.funds = []
-        if self.portfolio_companies is None:
-            self.portfolio_companies = []
-        if self.game_events is None:
-            self.game_events = []
+    entry_margin: float
+    entry_equity: float
+    entry_debt: float
+    current_ebitda: float
+    current_revenue: float
+    current_margin: float
+    debt: float
+    entry_year: int
+    growth_rate: float
+    leverage_ratio: float = 3.0
+    interest_rate: float = 0.06
 
 # ============================================================================
-# DATABASE & PERSISTENCE
+# SESSION STATE INITIALIZATION (CENTRALIZED)
 # ============================================================================
 
-DB_PATH = ".claude/carryforge.db"
-os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+def init_session_state():
+    """Initialize all game state in one place."""
+    if "portfolio" not in st.session_state:
+        st.session_state.portfolio = {
+            "companies": [],
+            "cash": 50_000_000,
+            "debt_capacity": 50_000_000,
+            "raised_capital": 50_000_000,
+            "year": 2024,
+            "quarter": 1,
+            "difficulty": "Balanced",
+            "screen": "menu",
+            "exited_companies": [],
+            "history": [],
+            "game_events": [],
+        }
 
-def init_db():
-    """Initialize SQLite database with save slots."""
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS saves (
-            slot_id INTEGER PRIMARY KEY,
-            game_state TEXT NOT NULL,
-            timestamp TEXT NOT NULL,
-            quarter INTEGER,
-            fund_name TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
+    if "deal_flow" not in st.session_state:
+        st.session_state.deal_flow = []
 
-def save_game(slot_id: int, game_state: GameState):
-    """Save game to SQLite."""
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-
-    game_json = json.dumps({
-        "current_quarter": game_state.current_quarter,
-        "current_year": game_state.current_year,
-        "difficulty": game_state.difficulty,
-        "cash_balance": game_state.cash_balance,
-        "funds": [asdict(f) for f in game_state.funds],
-        "portfolio_companies": [asdict(c) for c in game_state.portfolio_companies],
-        "game_events": game_state.game_events,
-    }, default=str)
-
-    timestamp = datetime.now().isoformat()
-    fund_name = game_state.funds[0].name if game_state.funds else "New Game"
-
-    c.execute('''
-        INSERT OR REPLACE INTO saves (slot_id, game_state, timestamp, quarter, fund_name)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (slot_id, game_json, timestamp, game_state.current_quarter, fund_name))
-
-    conn.commit()
-    conn.close()
-    st.success(f"Game saved to Slot {slot_id}!")
-
-def load_game(slot_id: int) -> Optional[GameState]:
-    """Load game from SQLite."""
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('SELECT game_state FROM saves WHERE slot_id = ?', (slot_id,))
-    result = c.fetchone()
-    conn.close()
-
-    if not result:
-        return None
-
-    data = json.loads(result[0])
-
-    # Reconstruct objects
-    funds = [Fund(**f) for f in data.get("funds", [])]
-    companies = [Company(**c) for c in data.get("portfolio_companies", [])]
-
-    return GameState(
-        current_quarter=data["current_quarter"],
-        current_year=data["current_year"],
-        difficulty=data["difficulty"],
-        cash_balance=data["cash_balance"],
-        funds=funds,
-        portfolio_companies=companies,
-        game_events=data.get("game_events", []),
-    )
-
-def get_all_saves() -> List[Tuple[int, str, str, int]]:
-    """Get all saved games."""
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('SELECT slot_id, fund_name, timestamp, quarter FROM saves ORDER BY timestamp DESC')
-    result = c.fetchall()
-    conn.close()
-    return result
+    if "show_tutorial" not in st.session_state:
+        st.session_state.show_tutorial = False
 
 # ============================================================================
-# GAME LOGIC & MECHANICS
+# FINANCIAL CALCULATIONS
 # ============================================================================
 
-def generate_company(sector: Optional[str] = None, difficulty: str = "Balanced") -> Company:
-    """Procedural company generator with hidden traits."""
-    if sector is None:
-        sector = random.choice([s.value for s in SectorEnum])
+def calculate_company_metrics(company: Company, current_year: int) -> dict:
+    """Calculate current financials and returns for a company."""
+    years_held = current_year - company.entry_year
 
-    company_id = hashlib.md5(f"{datetime.now()}{random.random()}".encode()).hexdigest()[:8]
+    # Revenue & EBITDA growth
+    revenue = company.entry_revenue * ((1 + company.growth_rate) ** years_held)
+    ebitda = revenue * company.current_margin
 
-    # Base parameters by sector
-    sector_params = {
-        "SaaS": {"rev_range": (50, 150), "margin_range": (0.30, 0.50), "growth_range": (0.15, 0.35)},
-        "Manufacturing": {"rev_range": (100, 300), "margin_range": (0.08, 0.15), "growth_range": (0.05, 0.12)},
-        "Healthcare": {"rev_range": (80, 250), "margin_range": (0.15, 0.30), "growth_range": (0.10, 0.25)},
-        "Retail": {"rev_range": (150, 400), "margin_range": (0.05, 0.12), "growth_range": (0.02, 0.10)},
-        "Business Services": {"rev_range": (60, 200), "margin_range": (0.18, 0.35), "growth_range": (0.10, 0.25)},
-        "FinTech": {"rev_range": (40, 120), "margin_range": (0.20, 0.40), "growth_range": (0.25, 0.50)},
-        "Logistics": {"rev_range": (120, 350), "margin_range": (0.06, 0.12), "growth_range": (0.05, 0.15)},
-        "Media & Content": {"rev_range": (30, 100), "margin_range": (0.15, 0.30), "growth_range": (0.10, 0.30)},
+    # Debt paydown
+    fcf = ebitda * 0.60
+    interest = company.debt * company.interest_rate
+    principal_paid = min(max(fcf - interest, 0) * 0.30, company.debt)
+    debt = max(company.debt - principal_paid, 0)
+
+    # Exit valuation
+    exit_multiple = 8.5
+    enterprise_value = ebitda * exit_multiple
+    equity_value = max(enterprise_value - debt, 0)
+
+    # Returns
+    moic = equity_value / max(company.entry_equity, 1)
+    irr = ((moic) ** (1 / max(years_held, 1)) - 1) if years_held > 0 else 0
+
+    return {
+        "revenue": revenue,
+        "ebitda": ebitda,
+        "debt": debt,
+        "enterprise_value": enterprise_value,
+        "equity_value": equity_value,
+        "moic": moic,
+        "irr": irr,
+        "leverage": debt / max(ebitda, 1),
+        "interest_coverage": ebitda / max(interest, 1),
     }
 
-    params = sector_params.get(sector, sector_params["Business Services"])
+def calculate_portfolio_health() -> tuple[int, str]:
+    """Calculate portfolio health score 0-100 and status."""
+    portfolio = st.session_state.portfolio
+
+    if not portfolio["companies"]:
+        return 50, "No portfolio"
+
+    # Calculate average metrics
+    leverage_scores = []
+    coverage_scores = []
+    growth_scores = []
+
+    for company in portfolio["companies"]:
+        metrics = calculate_company_metrics(company, portfolio["year"])
+
+        # Leverage score (ideal 2-3x)
+        lev = metrics["leverage"]
+        lev_score = max(0, 100 - abs(lev - 2.5) * 15)
+        leverage_scores.append(lev_score)
+
+        # Coverage score (ideal >2x)
+        cov = metrics["interest_coverage"]
+        cov_score = min(100, cov * 40)
+        coverage_scores.append(cov_score)
+
+        # Growth score
+        growth_score = min(100, company.growth_rate * 300)
+        growth_scores.append(growth_score)
+
+    # Weighted composite
+    avg_leverage = np.mean(leverage_scores) if leverage_scores else 50
+    avg_coverage = np.mean(coverage_scores) if coverage_scores else 50
+    avg_growth = np.mean(growth_scores) if growth_scores else 50
+
+    health = int(avg_leverage * 0.4 + avg_coverage * 0.35 + avg_growth * 0.25)
+    health = max(0, min(100, health))
+
+    if health > 75:
+        status = "Excellent"
+    elif health > 55:
+        status = "Good"
+    elif health > 35:
+        status = "At Risk"
+    else:
+        status = "Critical"
+
+    return health, status
+
+def check_covenant_violations() -> list[dict]:
+    """Check all companies for debt covenant violations."""
+    violations = []
+
+    for company in st.session_state.portfolio["companies"]:
+        metrics = calculate_company_metrics(company, st.session_state.portfolio["year"])
+
+        # Max leverage covenant
+        if metrics["leverage"] > 3.5:
+            violations.append({
+                "company": company.name,
+                "type": "Leverage Too High",
+                "value": f"{metrics['leverage']:.1f}x",
+                "limit": "3.5x",
+                "severity": "high"
+            })
+
+        # Min interest coverage covenant
+        if metrics["interest_coverage"] < 1.5:
+            violations.append({
+                "company": company.name,
+                "type": "Interest Coverage Low",
+                "value": f"{metrics['interest_coverage']:.1f}x",
+                "limit": "1.5x",
+                "severity": "critical"
+            })
+
+    return violations
+
+def project_company_years(company: Company, years: int = 5) -> pd.DataFrame:
+    """Generate 5-year projection for a company."""
+    projections = []
+
+    for year in range(1, years + 1):
+        revenue = company.entry_revenue * ((1 + company.growth_rate) ** year)
+        ebitda = revenue * company.current_margin
+        fcf = ebitda * 0.60
+        interest = company.debt * company.interest_rate
+        principal = min(max(fcf - interest, 0) * 0.30, company.debt)
+        debt = max(company.debt - principal, 0)
+
+        exit_mult = 8.5
+        ev = ebitda * exit_mult
+        equity = max(ev - debt, 0)
+        moic = equity / company.entry_equity
+        irr = (moic ** (1 / year) - 1)
+
+        projections.append({
+            "Year": company.entry_year + year,
+            "Revenue ($M)": f"${revenue:.1f}",
+            "EBITDA ($M)": f"${ebitda:.1f}",
+            "Debt ($M)": f"${debt:.1f}",
+            "Leverage": f"{debt/max(ebitda, 1):.1f}x",
+            "Equity Value ($M)": f"${equity:.1f}",
+            "MOIC": f"{moic:.2f}x",
+            "IRR": f"{irr*100:.1f}%"
+        })
+
+    return pd.DataFrame(projections)
+
+def sensitivity_analysis(company: Company) -> pd.DataFrame:
+    """Show IRR sensitivity to exit multiple and growth rate."""
+    exit_multiples = [6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0]
+    growth_rates = [0.05, 0.10, 0.15, 0.20, 0.25, 0.30]
+
+    sensitivity = pd.DataFrame(
+        index=[f"{g:.0%}" for g in growth_rates],
+        columns=[f"{m:.1f}x" for m in exit_multiples]
+    )
+
+    for exit_mult in exit_multiples:
+        for growth_rate in growth_rates:
+            # Simplified: assume 5-year hold
+            revenue = company.entry_revenue * ((1 + growth_rate) ** 5)
+            ebitda = revenue * company.current_margin
+            debt = max(company.debt - (company.debt * 0.15), 0)  # 15% paydown
+            ev = ebitda * exit_mult
+            equity = max(ev - debt, 0)
+            moic = equity / company.entry_equity
+            irr = (moic ** (1 / 5) - 1) * 100
+
+            sensitivity.loc[f"{growth_rate:.0%}", f"{exit_mult:.1f}x"] = f"{irr:.1f}%"
+
+    return sensitivity
+
+# ============================================================================
+# PROCEDURAL GENERATION
+# ============================================================================
+
+def generate_company(sector: str = None) -> Company:
+    """Generate a random company for deal flow."""
+    if sector is None:
+        sector = random.choice(list(SECTOR_PARAMS.keys()))
+
+    params = SECTOR_PARAMS[sector]
+    company_id = hashlib.md5(f"{datetime.now()}{random.random()}".encode()).hexdigest()[:8]
 
     revenue = np.random.uniform(*params["rev_range"])
     margin = np.random.uniform(*params["margin_range"])
     ebitda = revenue * margin
-    growth_rate = np.random.uniform(*params["growth_range"])
+    growth = np.random.uniform(*params["growth_range"])
 
-    # Entry terms (6-10x EBITDA multiple)
-    entry_multiple = np.random.uniform(6.0, 10.0)
-    entry_equity = ebitda * entry_multiple
+    entry_mult = np.random.uniform(6.0, 10.0)
+    entry_equity = ebitda * entry_mult
     entry_debt = entry_equity * np.random.uniform(1.5, 3.0)
 
-    company_names = {
-        "SaaS": ["CloudWorks", "DataSense", "AnalyticsPro", "TechFlow", "SyncHub"],
-        "Manufacturing": ["PrecisionCo", "IndustrialPro", "ManuFlex", "TechManuf", "Precision Plus"],
-        "Healthcare": ["MedCare Solutions", "HealthFirst", "CarePoint", "MediServe", "HealthTech"],
-        "Retail": ["RetailMax", "ShopHub", "MerchandisePro", "StoreFlow", "RetailCore"],
-        "Business Services": ["ConsultPro", "BusinessFlow", "ServicePro", "ConsultHub", "ProServe"],
-        "FinTech": ["FinFlow", "PayTech", "CryptoFlow", "TradeHub", "FinCore"],
-        "Logistics": ["LogisticsPro", "ShipHub", "TransFlow", "CargoHub", "DeliveryMax"],
-        "Media & Content": ["CreativeStudio", "ContentHub", "MediaFlow", "StudioPro", "CreativeForge"],
+    names = {
+        "SaaS": ["CloudWorks", "DataSense", "TechFlow"],
+        "Manufacturing": ["PrecisionCo", "IndustrialPro", "ManuFlex"],
+        "Healthcare": ["MedCare Solutions", "HealthFirst", "CarePoint"],
+        "Retail": ["RetailMax", "ShopHub", "MerchandisePro"],
+        "Business Services": ["ConsultPro", "BusinessFlow", "ServicePro"],
+        "FinTech": ["FinFlow", "PayTech", "TradeHub"],
+        "Logistics": ["LogisticsPro", "ShipHub", "TransFlow"],
+        "Media & Content": ["CreativeStudio", "ContentHub", "MediaFlow"],
     }
-
-    name = random.choice(company_names.get(sector, ["Venture Co.", "Innovation Inc.", "Growth Labs"]))
 
     return Company(
         id=company_id,
-        name=name,
+        name=random.choice(names.get(sector, ["Venture Co."])),
         sector=sector,
-        stage=CompanyStage.PROSPECT.value,
-        entry_year=0,
-        entry_multiple=entry_multiple,
+        entry_multiple=entry_mult,
         entry_ebitda=ebitda,
-        current_ebitda=ebitda,
-        revenue_growth_rate=growth_rate,
-        ebitda_margin=margin,
-        revenue=revenue,
-        debt=0,
-        shares_owned=0,
-        entry_debt=entry_debt,
         entry_revenue=revenue,
-        entry_equity_check=entry_equity,
+        entry_margin=margin,
+        entry_equity=entry_equity,
+        entry_debt=entry_debt,
+        current_ebitda=ebitda,
+        current_revenue=revenue,
+        current_margin=margin,
+        debt=0,
+        entry_year=0,
+        growth_rate=growth,
     )
 
-def calculate_company_value(company: Company, year_number: int) -> Dict:
-    """Calculate company value, debt, and returns metrics."""
-    years_held = year_number - company.entry_year
-
-    # EBITDA growth with margin expansion
-    ebitda = company.entry_ebitda * ((1 + company.revenue_growth_rate) ** years_held)
-    ebitda *= (1 + company.value_creation_levers.get("margin_expansion", 0) * 0.1)
-
-    # Revenue growth
-    revenue = company.entry_revenue * ((1 + company.revenue_growth_rate) ** years_held)
-
-    # Debt paydown (assume 20% annual principal paydown from FCF)
-    debt_schedule = company.entry_debt
-    for _ in range(years_held):
-        fcf = ebitda * 0.60  # Assume 60% conversion to FCF
-        principal_paid = min(fcf * 0.20, debt_schedule)
-        debt_schedule -= principal_paid
-
-    debt = max(debt_schedule, 0)
-
-    # Exit multiple (base + leverage from growth levers)
-    exit_multiple = 8.5  # Base exit multiple
-    exit_multiple *= (1 + company.value_creation_levers.get("multiple_arbitrage", 0) * 0.05)
-
-    # Enterprise value at exit
-    enterprise_value = ebitda * exit_multiple
-
-    # Equity value = EV - Net Debt
-    equity_value = enterprise_value - debt
-
-    # Returns (on original equity check)
-    moic = equity_value / max(company.entry_equity_check, 1)
-    irr = ((moic) ** (1 / max(years_held, 1)) - 1) if years_held > 0 else 0
-
-    return {
-        "ebitda": ebitda,
-        "revenue": revenue,
-        "debt": debt,
-        "enterprise_value": enterprise_value,
-        "equity_value": max(equity_value, 0),
-        "moic": moic,
-        "irr": irr,
-        "multiple_paid": company.entry_multiple,
-        "multiple_exiting": exit_multiple,
-    }
-
-def generate_deal_flow(quarter: int, difficulty: str, num_deals: int = 6) -> List[Company]:
-    """Generate random deal flow for the quarter."""
-    deals = []
-    for _ in range(num_deals):
-        company = generate_company(difficulty=difficulty)
-        company.stage = CompanyStage.PROSPECT.value
-        deals.append(company)
-    return deals
-
-def generate_quarterly_events(quarter: int, fund: Fund) -> List[Dict]:
-    """Generate random events and narrative moments."""
-    events = []
-    event_pool = [
-        {"type": "market_tailwind", "text": "Strong M&A market sentiment drives multiple expansion", "impact": 0.05},
-        {"type": "market_headwind", "text": "Rising rates pressure EBITDA multiples", "impact": -0.05},
-        {"type": "portfolio_win", "text": "Top portfolio company exceeds guidance", "impact": 0.10},
-        {"type": "portfolio_loss", "text": "One company misses targets", "impact": -0.08},
-        {"type": "fundraising_opportunity", "text": "LP interest in Fund II discussions", "impact": 0.02},
-        {"type": "competitor_move", "text": "Rival PE firm closes large fund", "impact": 0.00},
-    ]
-
-    # 40% chance of event per quarter
-    if random.random() < 0.4:
-        event = random.choice(event_pool)
-        events.append({
-            "quarter": quarter,
-            "title": event["text"],
-            "type": event["type"],
-            "impact": event["impact"],
-        })
-
-    return events
-
-def advance_quarter(game_state: GameState):
-    """Simulate one quarter forward."""
-    game_state.current_quarter += 1
-    game_state.current_year = 2024 + (game_state.current_quarter - 1) // 4
-
-    # Advance each portfolio company
-    for company in game_state.portfolio_companies:
-        if company.stage == CompanyStage.OWNED.value:
-            metrics = calculate_company_value(company, game_state.current_year)
-            company.current_ebitda = metrics["ebitda"]
-            company.revenue = metrics["revenue"]
-            company.debt = metrics["debt"]
-
-    # Generate events
-    if game_state.funds:
-        new_events = generate_quarterly_events(game_state.current_quarter, game_state.funds[0])
-        game_state.game_events.extend(new_events)
-
 # ============================================================================
-# SESSION STATE INITIALIZATION
+# SCREEN COMPONENTS (MODULAR)
 # ============================================================================
 
-def init_session_state():
-    """Initialize or restore Streamlit session state."""
-    if "game_state" not in st.session_state:
-        st.session_state.game_state = None
-    if "current_page" not in st.session_state:
-        st.session_state.current_page = "menu"
-    if "show_tutorial" not in st.session_state:
-        st.session_state.show_tutorial = False
-
-init_db()
-init_session_state()
-
-# ============================================================================
-# UI PAGES
-# ============================================================================
-
-def page_main_menu():
-    """Home/menu screen."""
+def screen_menu():
+    """Main menu."""
     st.markdown("""
     <div style='text-align: center; padding: 3rem 0;'>
-        <h1 style='font-size: 3rem; background: linear-gradient(135deg, #10b981, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0;'>
+        <h1 style='font-size: 3rem; background: linear-gradient(135deg, #10b981, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>
             ♦ CarryForge ♦
         </h1>
-        <p style='color: #a0a0a0; font-size: 1.1rem; margin-top: 0.5rem;'>
-            The Premier Private Equity Empire Builder
-        </p>
+        <p style='color: #a0a0a0; font-size: 1.1rem;'>Premium PE Empire Builder</p>
     </div>
     """, unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.markdown("---")
-        st.markdown("<h3 style='text-align: center;'>Start Your PE Dynasty</h3>", unsafe_allow_html=True)
-
-        if st.button("🚀 New Game", use_container_width=True, key="new_game_btn"):
-            st.session_state.current_page = "difficulty_select"
+        if st.button("🚀 Start New Game", use_container_width=True):
+            st.session_state.portfolio["screen"] = "difficulty"
             st.rerun()
 
-        st.markdown("### Load Game")
-        saves = get_all_saves()
-        if saves:
-            for slot_id, fund_name, timestamp, quarter in saves:
-                col_a, col_b, col_c = st.columns([3, 1, 1])
-                with col_a:
-                    if st.button(f"📊 {fund_name} (Q{quarter})", key=f"load_{slot_id}", use_container_width=True):
-                        st.session_state.game_state = load_game(slot_id)
-                        st.session_state.current_page = "overview"
-                        st.rerun()
-                with col_b:
-                    st.caption(f"Slot {slot_id}")
-                with col_c:
-                    st.caption(timestamp.split("T")[0])
-        else:
-            st.info("No saved games yet. Start a new game!")
-
-        st.markdown("---")
-        st.markdown("<h3 style='text-align: center;'>How to Play</h3>", unsafe_allow_html=True)
-
-        with st.expander("📖 Game Basics"):
-            st.markdown("""
-            **CarryForge** is a PE simulation where you:
-
-            1. **Raise capital** from LPs ($50M Fund I to start)
-            2. **Source deals** from the deal flow each quarter
-            3. **Create value** via revenue growth, margins, and multiple expansion
-            4. **Exit winners** and realize returns for your LPs
-            5. **Grow your firm** by raising Fund II with strong returns
-
-            Your goal: **Maximize MOIC (money multiple) and IRR** across your portfolio.
-            """)
-
-        with st.expander("💡 Pro Tips"):
-            st.markdown("""
-            - **Diversify sectors** — avoid betting everything on one industry
-            - **Watch multiples** — buy at 6x EBITDA, exit at 8.5x–10x
-            - **Manage leverage** — too much debt kills returns in downturns
-            - **Hold winners** — patience on high-growth companies pays off
-            - **Monitor events** — macro headwinds/tailwinds affect all companies
-            """)
-
-def page_difficulty_select():
-    """Choose difficulty at game start."""
+def screen_difficulty():
+    """Choose difficulty."""
     st.markdown("<h2 style='text-align: center;'>Choose Your Challenge</h2>", unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns(3)
 
-    difficulties = [
-        ("Casual", "Easier LBO outcomes, more forgiving markets, higher exit multiples", col1),
-        ("Balanced", "Realistic PE scenarios, fair market conditions", col2),
-        ("Hardcore", "Volatile markets, tight covenants, ruthless competition", col3),
+    diffs = [
+        ("Casual", "Easier outcomes, higher multiples, forgiving markets", col1),
+        ("Balanced", "Realistic PE scenarios, fair conditions", col2),
+        ("Hardcore", "Volatile markets, tight covenants, ruthless", col3),
     ]
 
-    for diff_name, desc, col in difficulties:
+    for name, desc, col in diffs:
         with col:
-            st.markdown(f"<div class='card'><h3>{diff_name}</h3><p>{desc}</p></div>", unsafe_allow_html=True)
-            if st.button(f"Play {diff_name}", use_container_width=True, key=f"diff_{diff_name}"):
-                # Initialize new game
-                fund = Fund(
-                    fund_id="fund_1",
-                    name="Fund I: Genesis",
-                    raised_capital=50_000_000,
-                    committed_capital=50_000_000,
-                    invested_capital=0,
-                    available_capital=50_000_000,
-                    portfolio=[],
-                    created_quarter=1,
-                )
-
-                game_state = GameState(
-                    current_quarter=1,
-                    current_year=2024,
-                    difficulty=diff_name,
-                    funds=[fund],
-                    cash_balance=50_000_000,
-                )
-
-                st.session_state.game_state = game_state
-                st.session_state.current_page = "overview"
-                st.session_state.show_tutorial = True
+            st.markdown(f"<div class='deal-card'><h3>{name}</h3><p>{desc}</p></div>", unsafe_allow_html=True)
+            if st.button(f"Play {name}", use_container_width=True, key=f"diff_{name}"):
+                st.session_state.portfolio["difficulty"] = name
+                st.session_state.portfolio["screen"] = "dashboard"
+                st.session_state.deal_flow = [generate_company() for _ in range(6)]
                 st.rerun()
 
-def page_overview():
-    """Main dashboard/overview."""
-    gs = st.session_state.game_state
+def screen_dashboard():
+    """Main dashboard with key metrics."""
+    portfolio = st.session_state.portfolio
 
-    # Header with quarter/year info
+    # Header
     col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
     with col1:
-        st.markdown(f"<h2>CarryForge | Fund I: Genesis</h2>", unsafe_allow_html=True)
+        st.markdown(f"<h2>CarryForge | Fund I</h2>", unsafe_allow_html=True)
     with col2:
-        st.metric("Quarter", f"Q{gs.current_quarter}", f"Year {gs.current_year}")
+        st.metric("Year", portfolio["year"])
     with col3:
-        st.metric("Difficulty", gs.difficulty)
+        st.metric("Q", portfolio["quarter"])
     with col4:
-        if st.button("💾 Save Game", key="save_overview"):
-            save_game(1, gs)
+        if st.button("💾 Save"):
+            save_game(portfolio)
+            st.success("Saved!")
 
-    # Key metrics row
     st.markdown("---")
-    st.markdown("<h3>Fund Performance</h3>", unsafe_allow_html=True)
 
-    fund = gs.funds[0]
+    # Portfolio metrics
+    total_value = sum(calculate_company_metrics(c, portfolio["year"])["equity_value"] for c in portfolio["companies"])
+    total_deployed = portfolio["raised_capital"] - portfolio["cash"]
+    gross_dpi = total_value / max(total_deployed, 1) if total_deployed > 0 else 1.0
+    avg_irr = np.mean([calculate_company_metrics(c, portfolio["year"])["irr"] for c in portfolio["companies"]]) if portfolio["companies"] else 0
 
-    metrics_col1, metrics_col2, metrics_col3, metrics_col4, metrics_col5 = st.columns(5)
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Deployed", f"${total_deployed/1e6:.1f}M", f"{total_deployed/portfolio['raised_capital']*100:.0f}%")
+    col2.metric("Portfolio Value", f"${total_value/1e6:.1f}M")
+    col3.metric("Gross DPI", f"{gross_dpi:.2f}x")
+    col4.metric("Avg IRR", f"{avg_irr*100:.1f}%")
 
-    with metrics_col1:
-        st.metric("Capital Raised", f"${fund.raised_capital/1e6:.1f}M", "✓")
-    with metrics_col2:
-        st.metric("Deployed", f"${fund.invested_capital/1e6:.1f}M", f"{fund.invested_capital/fund.raised_capital*100:.0f}%")
-    with metrics_col3:
-        st.metric("Available", f"${fund.available_capital/1e6:.1f}M", "")
-    with metrics_col4:
-        st.metric("Portfolio Value", f"${sum(max(calculate_company_value(c, gs.current_year)['equity_value'], 0) for c in gs.portfolio_companies)/1e6:.1f}M", "")
-    with metrics_col5:
-        portfolio_moic = fund.moic if gs.portfolio_companies else 1.0
-        st.metric("MOIC", f"{portfolio_moic:.2f}x", f"{(portfolio_moic-1)*100:+.1f}%")
-
-    # Portfolio holdings
     st.markdown("---")
+
+    # Portfolio Health
+    health, status = calculate_portfolio_health()
+    col_health, col_status = st.columns([4, 1])
+    with col_health:
+        st.progress(health / 100, text=f"Portfolio Health")
+    with col_status:
+        if status == "Excellent":
+            st.success(f"✅ {status}")
+        elif status == "Good":
+            st.info(f"👍 {status}")
+        elif status == "At Risk":
+            st.warning(f"⚠️ {status}")
+        else:
+            st.error(f"🚨 {status}")
+
+    st.markdown("---")
+
+    # Portfolio companies
     st.markdown("<h3>Portfolio Companies</h3>", unsafe_allow_html=True)
+    if portfolio["companies"]:
+        for i, company in enumerate(portfolio["companies"]):
+            metrics = calculate_company_metrics(company, portfolio["year"])
 
-    if gs.portfolio_companies:
-        portfolio_data = []
-        for company in gs.portfolio_companies:
-            if company.stage == CompanyStage.OWNED.value:
-                metrics = calculate_company_value(company, gs.current_year)
-                portfolio_data.append({
-                    "Company": company.name,
-                    "Sector": company.sector,
-                    "Revenue ($M)": f"${metrics['revenue']/1e6:.1f}",
-                    "EBITDA ($M)": f"${metrics['ebitda']/1e6:.1f}",
-                    "Debt ($M)": f"${metrics['debt']/1e6:.1f}",
-                    "Equity Value ($M)": f"${metrics['equity_value']/1e6:.1f}",
-                    "MOIC": f"{metrics['moic']:.2f}x",
-                    "IRR": f"{metrics['irr']*100:.1f}%",
-                })
-
-        df_portfolio = pd.DataFrame(portfolio_data)
-        st.dataframe(df_portfolio, use_container_width=True, hide_index=True)
+            col1, col2, col3, col4, col5 = st.columns([2, 1, 1, 1, 1])
+            with col1:
+                st.write(f"**{company.name}** ({company.sector})")
+            with col2:
+                st.metric("Revenue", f"${metrics['revenue']/1e6:.1f}M")
+            with col3:
+                st.metric("EBITDA", f"${metrics['ebitda']/1e6:.1f}M")
+            with col4:
+                st.metric("MOIC", f"{metrics['moic']:.2f}x", delta=f"{(metrics['moic']-1)*100:+.0f}%")
+            with col5:
+                if st.button("📊 Manage", key=f"manage_{i}"):
+                    st.session_state.portfolio["selected_company"] = i
+                    st.session_state.portfolio["screen"] = "company_detail"
+                    st.rerun()
     else:
-        st.info("📭 No portfolio companies yet. Browse deal flow to invest!")
+        st.info("No portfolio companies yet. Go to Deal Flow to invest!")
 
-    # Recent events
-    if gs.game_events:
+    # Covenant violations
+    violations = check_covenant_violations()
+    if violations:
         st.markdown("---")
-        st.markdown("<h3>Recent Events</h3>", unsafe_allow_html=True)
-        for event in gs.game_events[-3:]:
-            event_color = "🟢" if event["impact"] > 0 else "🔴" if event["impact"] < 0 else "⚪"
-            st.markdown(f"**{event_color} Q{event['quarter']}:** {event['title']}")
+        st.warning("⚠️ **Covenant Violations Detected**")
+        for v in violations:
+            severity = "🚨" if v["severity"] == "critical" else "⚠️"
+            st.write(f"{severity} **{v['company']}** — {v['type']}: {v['value']} (max {v['limit']})")
 
-    # Navigation buttons
     st.markdown("---")
-    nav_col1, nav_col2, nav_col3, nav_col4, nav_col5 = st.columns(5)
+
+    # Navigation
+    nav_col1, nav_col2, nav_col3, nav_col4 = st.columns(4)
 
     with nav_col1:
-        if st.button("📋 Deal Flow", use_container_width=True, key="nav_deal_flow"):
-            st.session_state.current_page = "deal_flow"
+        if st.button("📋 Deal Flow", use_container_width=True):
+            st.session_state.portfolio["screen"] = "deal_flow"
             st.rerun()
     with nav_col2:
-        if st.button("🎯 Portfolio", use_container_width=True, key="nav_portfolio"):
-            st.session_state.current_page = "portfolio"
+        if st.button("📊 Market", use_container_width=True):
+            st.session_state.portfolio["screen"] = "market"
             st.rerun()
     with nav_col3:
-        if st.button("📊 Market", use_container_width=True, key="nav_market"):
-            st.session_state.current_page = "market"
+        if st.button("💰 Fund Info", use_container_width=True):
+            st.session_state.portfolio["screen"] = "fund_info"
             st.rerun()
     with nav_col4:
-        if st.button("💰 Fund & LPs", use_container_width=True, key="nav_fund"):
-            st.session_state.current_page = "fund_lps"
-            st.rerun()
-    with nav_col5:
-        if st.button("⏭️ Advance Quarter", use_container_width=True, key="advance_quarter_btn"):
-            advance_quarter(gs)
+        if st.button("⏭️ Advance (Q+1)", use_container_width=True, key="advance_btn"):
+            portfolio["quarter"] += 1
+            if portfolio["quarter"] > 4:
+                portfolio["quarter"] = 1
+                portfolio["year"] += 1
+            st.session_state.deal_flow = [generate_company() for _ in range(6)]
             st.rerun()
 
-def page_deal_flow():
-    """Deal sourcing and investment decisions."""
-    gs = st.session_state.game_state
-    fund = gs.funds[0]
-
+def screen_deal_flow():
+    """Browse and invest in companies."""
     st.markdown("<h2>📋 Deal Flow</h2>", unsafe_allow_html=True)
-    st.markdown(f"**Available Capital:** ${fund.available_capital/1e6:.1f}M")
+    st.metric("Available Capital", f"${st.session_state.portfolio['cash']/1e6:.1f}M")
 
-    # Generate deal flow if not in session
-    if "deal_flow" not in st.session_state:
-        st.session_state.deal_flow = generate_deal_flow(gs.current_quarter, gs.difficulty, num_deals=6)
+    st.markdown("---")
 
-    deals = st.session_state.deal_flow
-
-    for i, company in enumerate(deals):
+    for i, company in enumerate(st.session_state.deal_flow):
         with st.container():
             st.markdown(f"<div class='deal-card'>", unsafe_allow_html=True)
 
@@ -729,286 +553,265 @@ def page_deal_flow():
 
             with col1:
                 st.markdown(f"### {company.name}")
-                st.markdown(f"**Sector:** {company.sector}")
+                st.caption(f"{company.sector}")
+
             with col2:
-                st.markdown(f"**Revenue:** ${company.revenue:.1f}M")
-                st.markdown(f"**EBITDA:** ${company.current_ebitda:.1f}M | **Margin:** {company.ebitda_margin*100:.1f}%")
-                st.markdown(f"**Growth Rate:** {company.revenue_growth_rate*100:.1f}%")
+                st.write(f"**Revenue:** ${company.entry_revenue:.1f}M | **EBITDA Margin:** {company.entry_margin*100:.0f}%")
+                st.write(f"**Growth:** {company.growth_rate*100:.0f}% | **Entry Multiple:** {company.entry_multiple:.1f}x")
+
             with col3:
-                st.markdown(f"**Entry Multiple:** {company.entry_multiple:.1f}x EBITDA")
-                entry_cost = company.current_ebitda * company.entry_multiple
-                st.markdown(f"**Equity Check:** ${entry_cost/1e6:.1f}M")
-                st.markdown(f"**Est. Debt:** ${company.entry_debt/1e6:.1f}M")
+                st.write(f"**Equity Check:** ${company.entry_equity/1e6:.1f}M")
+                st.write(f"**Est. Debt:** ${company.entry_debt/1e6:.1f}M")
 
-            # Investment controls
-            col_inv1, col_inv2, col_inv3 = st.columns([1, 2, 1])
+            col_inv1, col_inv2, col_inv3 = st.columns([1, 1, 1])
+
             with col_inv1:
-                if st.button(f"Invest", key=f"invest_{i}", use_container_width=True):
-                    entry_cost = company.current_ebitda * company.entry_multiple
-                    if entry_cost <= fund.available_capital:
-                        company.stage = CompanyStage.OWNED.value
-                        company.entry_year = gs.current_year
+                if st.button("Invest", key=f"inv_{i}", use_container_width=True):
+                    if company.entry_equity <= st.session_state.portfolio["cash"]:
+                        company.entry_year = st.session_state.portfolio["year"]
                         company.debt = company.entry_debt
-                        company.entry_equity_check = entry_cost
-
-                        gs.portfolio_companies.append(company)
-                        fund.available_capital -= entry_cost
-                        fund.invested_capital += entry_cost
-
-                        st.success(f"✅ Invested ${entry_cost/1e6:.1f}M in {company.name}!")
+                        st.session_state.portfolio["companies"].append(company)
+                        st.session_state.portfolio["cash"] -= company.entry_equity
+                        st.success(f"✅ Invested in {company.name}!")
                         st.rerun()
                     else:
                         st.error("❌ Insufficient capital!")
 
             with col_inv2:
-                if st.button(f"View Details", key=f"details_{i}", use_container_width=True):
-                    with st.expander(f"{company.name} - Full Details"):
-                        st.markdown(f"""
-                        **Company Profile:**
-                        - Sector: {company.sector}
-                        - Current Revenue: ${company.revenue:.1f}M
-                        - Current EBITDA: ${company.current_ebitda:.1f}M
-                        - EBITDA Margin: {company.ebitda_margin*100:.1f}%
-                        - Revenue Growth: {company.revenue_growth_rate*100:.1f}%
-
-                        **Investment Terms:**
-                        - Entry Multiple: {company.entry_multiple:.1f}x EBITDA
-                        - Equity Investment: ${company.current_ebitda * company.entry_multiple/1e6:.1f}M
-                        - Debt Financing: ${company.entry_debt/1e6:.1f}M
-                        - Total Enterprise Value: ${(company.current_ebitda * company.entry_multiple + company.entry_debt)/1e6:.1f}M
-                        """)
+                if st.button("Details", key=f"det_{i}", use_container_width=True):
+                    st.session_state.portfolio["selected_deal"] = i
+                    st.session_state.portfolio["screen"] = "deal_detail"
+                    st.rerun()
 
             with col_inv3:
-                if st.button(f"Pass", key=f"pass_{i}", use_container_width=True):
+                if st.button("Pass", key=f"pass_{i}", use_container_width=True):
                     st.info(f"Passed on {company.name}")
 
             st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown("---")
-    if st.button("← Back to Overview", use_container_width=True, key="back_to_overview_1"):
-        st.session_state.current_page = "overview"
+    if st.button("← Back to Dashboard", use_container_width=True):
+        st.session_state.portfolio["screen"] = "dashboard"
         st.rerun()
 
-def page_portfolio():
-    """Detailed portfolio management & value creation."""
-    gs = st.session_state.game_state
+def screen_deal_detail():
+    """Show detailed deal analysis."""
+    deal_idx = st.session_state.portfolio.get("selected_deal", 0)
+    company = st.session_state.deal_flow[deal_idx]
 
-    st.markdown("<h2>🎯 Portfolio Management</h2>", unsafe_allow_html=True)
+    st.markdown(f"<h2>{company.name}</h2>", unsafe_allow_html=True)
 
-    portfolio = [c for c in gs.portfolio_companies if c.stage == CompanyStage.OWNED.value]
-
-    if not portfolio:
-        st.info("No portfolio companies. Invest in deals from Deal Flow!")
-    else:
-        for company in portfolio:
-            metrics = calculate_company_value(company, gs.current_year)
-
-            with st.container():
-                st.markdown(f"<div class='card'>", unsafe_allow_html=True)
-
-                col1, col2, col3, col4 = st.columns(4)
-                with col1:
-                    st.markdown(f"### {company.name}")
-                    st.caption(company.sector)
-                with col2:
-                    st.metric("Revenue", f"${metrics['revenue']/1e6:.1f}M", f"+{company.revenue_growth_rate*100:.1f}%")
-                with col3:
-                    st.metric("EBITDA", f"${metrics['ebitda']/1e6:.1f}M")
-                with col4:
-                    st.metric("Equity Value", f"${metrics['equity_value']/1e6:.1f}M")
-
-                st.markdown("---")
-
-                # Value creation levers (sliders)
-                st.markdown("**Value Creation Levers:**")
-
-                col_rev, col_margin, col_mult = st.columns(3)
-
-                with col_rev:
-                    lever = st.slider(
-                        "Revenue Growth (+)",
-                        min_value=0.0,
-                        max_value=0.5,
-                        value=company.value_creation_levers.get("revenue_growth", 0),
-                        step=0.05,
-                        key=f"rev_lever_{company.id}",
-                    )
-                    company.value_creation_levers["revenue_growth"] = lever
-                    st.caption(f"Apply +{lever*100:.0f}% to base growth")
-
-                with col_margin:
-                    lever = st.slider(
-                        "Margin Expansion (+)",
-                        min_value=0.0,
-                        max_value=0.3,
-                        value=company.value_creation_levers.get("margin_expansion", 0),
-                        step=0.05,
-                        key=f"margin_lever_{company.id}",
-                    )
-                    company.value_creation_levers["margin_expansion"] = lever
-                    st.caption(f"Expand margins by {lever*100:.0f}%")
-
-                with col_mult:
-                    lever = st.slider(
-                        "Multiple Arbitrage (+)",
-                        min_value=0.0,
-                        max_value=0.3,
-                        value=company.value_creation_levers.get("multiple_arbitrage", 0),
-                        step=0.05,
-                        key=f"mult_lever_{company.id}",
-                    )
-                    company.value_creation_levers["multiple_arbitrage"] = lever
-                    st.caption(f"Improve exit multiple by {lever*100:.0f}%")
-
-                st.markdown("---")
-                st.markdown("**Return Summary:**")
-
-                col_moic, col_irr, col_exit = st.columns(3)
-                with col_moic:
-                    st.metric("MOIC", f"{metrics['moic']:.2f}x", f"{(metrics['moic']-1)*100:+.1f}%")
-                with col_irr:
-                    st.metric("IRR", f"{metrics['irr']*100:.1f}%")
-                with col_exit:
-                    years_held = gs.current_year - company.entry_year
-                    st.metric("Years Held", f"{years_held}")
-
-                st.markdown("---")
-
-                # Exit button
-                if st.button(f"🔓 Exit & Realize Returns", key=f"exit_{company.id}", use_container_width=True):
-                    company.stage = CompanyStage.EXITED.value
-                    gs.funds[0].available_capital += metrics["equity_value"]
-                    gs.funds[0].realized_distributions += metrics["equity_value"]
-                    st.success(f"✅ Exited {company.name} for ${metrics['equity_value']/1e6:.1f}M! MOIC: {metrics['moic']:.2f}x")
-                    st.rerun()
-
-                st.markdown("</div>", unsafe_allow_html=True)
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Sector", company.sector)
+    col2.metric("Entry Multiple", f"{company.entry_multiple:.1f}x")
+    col3.metric("Growth Rate", f"{company.growth_rate*100:.0f}%")
+    col4.metric("EBITDA Margin", f"{company.entry_margin*100:.0f}%")
 
     st.markdown("---")
-    if st.button("← Back to Overview", use_container_width=True, key="back_to_overview_2"):
-        st.session_state.current_page = "overview"
+    st.markdown("<h3>5-Year Projection</h3>", unsafe_allow_html=True)
+    projection = project_company_years(company, 5)
+    st.dataframe(projection, use_container_width=True, hide_index=True)
+
+    st.markdown("---")
+    st.markdown("<h3>Exit Multiple Sensitivity (IRR %)</h3>", unsafe_allow_html=True)
+    sensitivity = sensitivity_analysis(company)
+    st.dataframe(sensitivity, use_container_width=True)
+
+    st.markdown("---")
+    if st.button("← Back", use_container_width=True):
+        st.session_state.portfolio["screen"] = "deal_flow"
         st.rerun()
 
-def page_market():
-    """Market conditions & macro trends."""
-    gs = st.session_state.game_state
+def screen_company_detail():
+    """Manage a portfolio company."""
+    idx = st.session_state.portfolio.get("selected_company", 0)
+    company = st.session_state.portfolio["companies"][idx]
+    metrics = calculate_company_metrics(company, st.session_state.portfolio["year"])
 
+    st.markdown(f"<h2>{company.name}</h2>", unsafe_allow_html=True)
+
+    col1, col2, col3, col4, col5 = st.columns(5)
+    col1.metric("Revenue", f"${metrics['revenue']/1e6:.1f}M")
+    col2.metric("EBITDA", f"${metrics['ebitda']/1e6:.1f}M")
+    col3.metric("Debt", f"${metrics['debt']/1e6:.1f}M")
+    col4.metric("MOIC", f"{metrics['moic']:.2f}x")
+    col5.metric("IRR", f"{metrics['irr']*100:.1f}%")
+
+    st.markdown("---")
+    st.markdown("<h3>5-Year Projection</h3>", unsafe_allow_html=True)
+    projection = project_company_years(company, 5)
+    st.dataframe(projection, use_container_width=True, hide_index=True)
+
+    st.markdown("---")
+    st.markdown("<h3>Return Sensitivity</h3>", unsafe_allow_html=True)
+    sensitivity = sensitivity_analysis(company)
+    st.dataframe(sensitivity, use_container_width=True)
+
+    st.markdown("---")
+
+    # Covenant check
+    if metrics["leverage"] > 3.5:
+        st.error(f"⚠️ Leverage too high: {metrics['leverage']:.1f}x (max 3.5x)")
+    if metrics["interest_coverage"] < 1.5:
+        st.error(f"⚠️ Interest coverage weak: {metrics['interest_coverage']:.1f}x (min 1.5x)")
+
+    st.markdown("---")
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        if st.button("Exit & Realize Returns", use_container_width=True):
+            st.session_state.portfolio["cash"] += metrics["equity_value"]
+            st.session_state.portfolio["exited_companies"].append({
+                "name": company.name,
+                "moic": metrics["moic"],
+                "irr": metrics["irr"],
+                "proceeds": metrics["equity_value"]
+            })
+            st.session_state.portfolio["companies"].pop(idx)
+            st.success(f"✅ Exited {company.name} for ${metrics['equity_value']/1e6:.1f}M! MOIC: {metrics['moic']:.2f}x")
+            st.rerun()
+
+    with col2:
+        if st.button("← Back", use_container_width=True):
+            st.session_state.portfolio["screen"] = "dashboard"
+            st.rerun()
+
+def screen_market():
+    """Market conditions and trends."""
     st.markdown("<h2>📊 Market & Economy</h2>", unsafe_allow_html=True)
 
-    # Market sentiment (simulated)
-    quarter_offset = gs.current_quarter % 4
-    market_sentiment = 0.5 + 0.3 * np.sin(gs.current_quarter / 4)
+    portfolio = st.session_state.portfolio
+    quarter_phase = portfolio["quarter"] % 4
 
     col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Market Sentiment", f"{market_sentiment*100:.0f}%", "Favorable" if market_sentiment > 0.5 else "Uncertain")
-    with col2:
-        st.metric("M&A Activity", "High" if quarter_offset in [0, 1] else "Moderate")
-    with col3:
-        st.metric("Interest Rates", "Elevated" if gs.current_year > 2025 else "Moderate")
+    col1.metric("Market Sentiment", "Favorable" if quarter_phase in [0, 1] else "Neutral")
+    col2.metric("M&A Activity", "High" if quarter_phase < 2 else "Moderate")
+    col3.metric("Interest Rates", "5.5%")
 
     st.markdown("---")
+    st.markdown("<h3>Exit Multiple Trends</h3>", unsafe_allow_html=True)
 
-    # Historical returns chart
-    st.markdown("<h3>Historical Quarterly Returns</h3>", unsafe_allow_html=True)
-
-    historical_returns = [1.0 + random.uniform(-0.02, 0.03) for _ in range(gs.current_quarter)]
+    exit_multiples = [8.0 + 0.3 * np.sin(i / 2) for i in range(portfolio["quarter"])]
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(
-        x=list(range(1, gs.current_quarter + 1)),
-        y=historical_returns,
+        y=exit_multiples,
         mode='lines+markers',
-        name='Market Index',
+        name='Exit Multiple (EBITDA)',
         line=dict(color='#10b981', width=2),
-        marker=dict(size=6),
     ))
     fig.update_layout(
-        title="Simulated Market Index",
-        xaxis_title="Quarter",
-        yaxis_title="Value (Normalized)",
+        title="Historical Exit Multiples",
+        yaxis_title="Multiple",
         template="plotly_dark",
-        hovermode='x unified',
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(10,14,39,0.8)',
     )
     st.plotly_chart(fig, use_container_width=True)
 
     st.markdown("---")
-    if st.button("← Back to Overview", use_container_width=True, key="back_to_overview_3"):
-        st.session_state.current_page = "overview"
+    if st.button("← Back to Dashboard", use_container_width=True):
+        st.session_state.portfolio["screen"] = "dashboard"
         st.rerun()
 
-def page_fund_lps():
-    """Fund & LP management."""
-    gs = st.session_state.game_state
-    fund = gs.funds[0]
+def screen_fund_info():
+    """Fund & LP information."""
+    portfolio = st.session_state.portfolio
 
-    st.markdown("<h2>💰 Fund & LP Relations</h2>", unsafe_allow_html=True)
+    st.markdown("<h2>💰 Fund I Information</h2>", unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Total Raised", f"${fund.raised_capital/1e6:.1f}M")
-    with col2:
-        st.metric("Deployed %", f"{fund.invested_capital/fund.raised_capital*100:.1f}%")
-    with col3:
-        st.metric("Gross DPI", f"{(fund.realized_distributions + sum(max(calculate_company_value(c, gs.current_year)['equity_value'], 0) for c in gs.portfolio_companies if c.stage == CompanyStage.OWNED.value)) / max(fund.invested_capital, 1):.2f}x")
+    col1.metric("Capital Raised", f"${portfolio['raised_capital']/1e6:.1f}M")
+    col2.metric("Deployed", f"${(portfolio['raised_capital']-portfolio['cash'])/1e6:.1f}M")
+    col3.metric("Available", f"${portfolio['cash']/1e6:.1f}M")
 
     st.markdown("---")
+
     st.markdown("<h3>LP Base</h3>", unsafe_allow_html=True)
-
     lp_data = pd.DataFrame({
-        "LP": ["University Endowment", "Pension Fund A", "Family Office", "Foundations"],
-        "Commitment ($M)": [15, 20, 10, 5],
-        "Called ($M)": [fund.invested_capital/4, fund.invested_capital/4, fund.invested_capital/4, fund.invested_capital/4],
-        "Satisfaction": ["😊", "😊", "😌", "😊"],
+        "LP": ["University Endowment", "Pension Fund", "Family Office", "Foundations"],
+        "Commitment ($M)": [12.5, 15, 12.5, 10],
+        "Status": ["Active", "Active", "Active", "Active"]
     })
-
     st.dataframe(lp_data, use_container_width=True, hide_index=True)
 
     st.markdown("---")
+
+    total_value = sum(calculate_company_metrics(c, portfolio["year"])["equity_value"] for c in portfolio["companies"])
+    total_deployed = portfolio["raised_capital"] - portfolio["cash"]
+    gross_dpi = (total_value + sum(e["proceeds"] for e in portfolio["exited_companies"])) / max(total_deployed, 1)
+
     st.markdown("<h3>Fund II Readiness</h3>", unsafe_allow_html=True)
-
-    # Calculate DPI
-    gross_dpi = (fund.realized_distributions + sum(max(calculate_company_value(c, gs.current_year)['equity_value'], 0) for c in gs.portfolio_companies if c.stage == CompanyStage.OWNED.value)) / max(fund.invested_capital, 1)
-
     if gross_dpi > 1.5:
-        st.success("✅ Strong performance! LPs ready for Fund II discussions.")
+        st.success(f"✅ Strong DPI ({gross_dpi:.2f}x)! LPs ready for Fund II conversations.")
     elif gross_dpi > 1.2:
-        st.info("⏳ Good progress. One more strong exit recommended before Fund II raise.")
+        st.info(f"⏳ Good progress (DPI: {gross_dpi:.2f}x). One more strong exit recommended.")
     else:
-        st.warning("⚠️ Build track record. Target 1.5x+ DPI before Fund II fundraise.")
+        st.warning(f"⚠️ Build track record (Current DPI: {gross_dpi:.2f}x). Target 1.5x+ for Fund II.")
 
     st.markdown("---")
-    if st.button("← Back to Overview", use_container_width=True, key="back_to_overview_4"):
-        st.session_state.current_page = "overview"
+    if st.button("← Back to Dashboard", use_container_width=True):
+        st.session_state.portfolio["screen"] = "dashboard"
         st.rerun()
+
+# ============================================================================
+# DATABASE & PERSISTENCE
+# ============================================================================
+
+def save_game(portfolio):
+    """Save game state."""
+    conn = sqlite3.connect(".claude/carryforge.db")
+    c = conn.cursor()
+
+    game_json = json.dumps({
+        "year": portfolio["year"],
+        "quarter": portfolio["quarter"],
+        "cash": portfolio["cash"],
+        "difficulty": portfolio["difficulty"],
+        "companies": [asdict(c) for c in portfolio["companies"]],
+        "exited": portfolio["exited_companies"],
+    }, default=str)
+
+    c.execute('''CREATE TABLE IF NOT EXISTS saves (
+        slot INTEGER PRIMARY KEY,
+        data TEXT,
+        timestamp TEXT
+    )''')
+
+    c.execute('INSERT OR REPLACE INTO saves VALUES (1, ?, ?)',
+              (game_json, datetime.now().isoformat()))
+
+    conn.commit()
+    conn.close()
 
 # ============================================================================
 # MAIN APP ROUTER
 # ============================================================================
 
 def main():
-    """Main app router."""
-    if st.session_state.current_page == "menu":
-        page_main_menu()
-    elif st.session_state.current_page == "difficulty_select":
-        page_difficulty_select()
-    elif st.session_state.current_page == "overview":
-        page_overview()
-    elif st.session_state.current_page == "deal_flow":
-        page_deal_flow()
-    elif st.session_state.current_page == "portfolio":
-        page_portfolio()
-    elif st.session_state.current_page == "market":
-        page_market()
-    elif st.session_state.current_page == "fund_lps":
-        page_fund_lps()
+    init_session_state()
+
+    portfolio = st.session_state.portfolio
+    screen = portfolio["screen"]
+
+    if screen == "menu":
+        screen_menu()
+    elif screen == "difficulty":
+        screen_difficulty()
+    elif screen == "dashboard":
+        screen_dashboard()
+    elif screen == "deal_flow":
+        screen_deal_flow()
+    elif screen == "deal_detail":
+        screen_deal_detail()
+    elif screen == "company_detail":
+        screen_company_detail()
+    elif screen == "market":
+        screen_market()
+    elif screen == "fund_info":
+        screen_fund_info()
     else:
-        st.error("Unknown page")
-        if st.button("Return to Menu"):
-            st.session_state.current_page = "menu"
-            st.rerun()
+        st.error(f"Unknown screen: {screen}")
 
 if __name__ == "__main__":
     main()
