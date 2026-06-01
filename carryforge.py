@@ -30,6 +30,7 @@ Preserved (don't break):
 """
 
 import streamlit as st
+import streamlit.components.v1 as components
 import numpy as np
 import random
 from dataclasses import dataclass, field
@@ -407,6 +408,7 @@ class GameState:
     rival:dict=field(default_factory=dict); exit_mult_mod:float=1.0
     growth_mod:float=1.0; sector_mods:dict=field(default_factory=dict)
     forced_exit_id:str=""; season_shown:int=0
+    sound_queue:list=field(default_factory=list)
 
     @property
     def year(self): return 2024 + self.quarter_num // 4
@@ -578,6 +580,7 @@ def apply_effect(gs:GameState, key:str, cid:str|None):
 def advance_quarter(gs:GameState):
     prev = gs.season
     gs.quarter_num += 1
+    q_sound(gs, "TICK")
     if not gs.exited and gs.quarter_num > 3:
         gs.lp_satisfaction = max(0, gs.lp_satisfaction - 3)
     gs.deals = make_deals(gs, 5)
@@ -587,13 +590,17 @@ def advance_quarter(gs:GameState):
     if new != prev and gs.season_shown < new:
         gs.season_shown = new
         si = SEASONS[new]
+        q_sound(gs, "SEASON")
         gs.pending_event = {"id":f"season_{new}","type":"season",
             "title":si["title"],"icon":si["emoji"],"text":si["text"],
             "choices":[{"label":"Got it. Keep moving.","effect":"nothing"}],"cid":None}
         return
     if random.random() < 0.60:
         ev = pick_event(gs)
-        if ev: gs.pending_event = ev
+        if ev:
+            gs.pending_event = ev
+            ev_snd = {"crisis":"CRISIS","opportunity":"OPPORTUNITY","rival":"RIVAL","lp":"LP"}.get(ev["type"],"TICK")
+            q_sound(gs, ev_snd)
 
 # ─────────────────────────────────────────────
 # SESSION STATE
@@ -610,6 +617,132 @@ def mc(v): return "c-green" if v>=2.0 else "c-gold" if v>=1.3 else "c-red"
 def cf(v): return f"${v/1e9:.2f}B" if abs(v)>=1e9 else f"${v/1e6:.1f}M"
 def lpc(s): return "#10b981" if s>=60 else "#f59e0b" if s>=35 else "#ef4444"
 def health_dot(m): return "🟢" if m>=1.10 else ("🔴" if m<=0.85 else "🟡")
+
+# ─────────────────────────────────────────────
+# SOUND ENGINE — Web Audio API, no external files
+# ─────────────────────────────────────────────
+_SOUND_JS = """
+<script>
+(function(){
+  if(window._cfAudioReady) return;
+  window._cfAudioReady = true;
+
+  var AC = window.AudioContext || window.webkitAudioContext;
+  if(!AC) return;
+
+  function tone(ctx, freq, type, t0, dur, vol, detune){
+    var o = ctx.createOscillator();
+    var g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = type || 'sine';
+    o.frequency.value = freq;
+    if(detune) o.detune.value = detune;
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(vol||0.25, t0+0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+    o.start(t0); o.stop(t0+dur+0.05);
+  }
+
+  window._cfPlay = function(snd){
+    try{
+      var ctx = new AC();
+
+      // Unlock on iOS by resuming
+      if(ctx.state==='suspended') ctx.resume();
+
+      var t = ctx.currentTime;
+
+      if(snd==='BUY'){
+        // Bright two-note chime
+        tone(ctx,880,'sine',t,0.18,0.22);
+        tone(ctx,1320,'sine',t+0.09,0.22,0.18);
+        tone(ctx,1760,'sine',t+0.17,0.15,0.12);
+      }
+      else if(snd==='SELL_GREAT'){
+        // Victory arpeggio — C5 E5 G5 C6
+        [523,659,784,1047].forEach(function(f,i){
+          tone(ctx,f,'sine',t+i*0.10,0.28,0.24);
+        });
+        tone(ctx,1047,'sine',t+0.45,0.35,0.18);
+      }
+      else if(snd==='SELL_OK'){
+        // Short pleasant two-note
+        tone(ctx,660,'sine',t,0.18,0.22);
+        tone(ctx,880,'sine',t+0.10,0.20,0.18);
+      }
+      else if(snd==='SELL_BAD'){
+        // Sad descending
+        [400,330,260].forEach(function(f,i){
+          tone(ctx,f,'triangle',t+i*0.12,0.22,0.18);
+        });
+      }
+      else if(snd==='TICK'){
+        // Soft quarter-advance tick
+        tone(ctx,600,'sine',t,0.07,0.14);
+        tone(ctx,900,'sine',t+0.04,0.06,0.09);
+      }
+      else if(snd==='CRISIS'){
+        // Tense stab
+        tone(ctx,220,'sawtooth',t,0.14,0.18);
+        tone(ctx,196,'sawtooth',t+0.12,0.20,0.14,-10);
+      }
+      else if(snd==='OPPORTUNITY'){
+        // Bright ping
+        tone(ctx,1100,'sine',t,0.10,0.20);
+        tone(ctx,1320,'sine',t+0.07,0.14,0.15);
+      }
+      else if(snd==='SEASON'){
+        // Dramatic low chord swell
+        [130,164,196,246].forEach(function(f,i){
+          tone(ctx,f,'sine',t+i*0.08,0.55,0.14);
+        });
+      }
+      else if(snd==='RIVAL'){
+        // Sinister descending
+        [500,400,350,'sawtooth'].slice(0,3).forEach(function(f,i){
+          tone(ctx,f,'sawtooth',t+i*0.09,0.18,0.12);
+        });
+      }
+      else if(snd==='LP'){
+        // Urgent phone ring-like
+        [740,740].forEach(function(f,i){
+          tone(ctx,f,'square',t+i*0.18,0.10,0.10);
+        });
+      }
+      else if(snd==='VICTORY'){
+        // Full fanfare
+        [523,659,784,1047,784,1047,1319].forEach(function(f,i){
+          tone(ctx,f,'sine',t+i*0.09,0.30,0.22);
+        });
+      }
+      else if(snd==='GRADE_C'){
+        // Wah-wah trombone
+        [350,300,250,230].forEach(function(f,i){
+          tone(ctx,f,'sawtooth',t+i*0.14,0.25,0.14);
+        });
+      }
+
+      // Auto-close context after sounds finish
+      setTimeout(function(){ try{ctx.close();}catch(e){} }, 2500);
+    } catch(e){}
+  };
+})();
+</script>
+"""
+
+def flush_sounds(gs: GameState):
+    """Play any queued sounds then clear the queue."""
+    if not gs.sound_queue:
+        return
+    calls = "".join(f"window._cfPlay('{s}');" for s in gs.sound_queue)
+    gs.sound_queue = []
+    components.html(
+        _SOUND_JS + f"<script>{calls}</script>",
+        height=0, scrolling=False,
+    )
+
+def q_sound(gs: GameState, snd: str):
+    gs.sound_queue.append(snd)
 
 # ─────────────────────────────────────────────
 # SCREEN: START
@@ -653,6 +786,7 @@ def screen_start():
         """, unsafe_allow_html=True)
 
         if st.form_submit_button("Start Fund I →", use_container_width=True):
+            st.session_state["score_sound_played"] = False
             ph = random.choice(FIRM_DEFAULTS)
             cfg = DIFFICULTY[diff]
             gs  = GameState(
@@ -671,6 +805,7 @@ def screen_start():
 # ─────────────────────────────────────────────
 def screen_event():
     gs = G()
+    flush_sounds(gs)   # play event sound (CRISIS / OPPORTUNITY / RIVAL / LP)
     ev = gs.pending_event
     css = {"crisis":"ev-crisis","opportunity":"ev-opportunity",
            "rival":"ev-rival","lp":"ev-lp","season":"ev-season"}.get(ev.get("type",""),"ev-neutral")
@@ -713,6 +848,8 @@ def screen_game():
     gs = G()
     if gs.pending_event:
         screen_event(); return
+
+    flush_sounds(gs)   # play any queued sounds (buy/sell/tick/events)
 
     cfg    = DIFFICULTY[gs.difficulty]
     si     = gs.season_info
@@ -820,6 +957,9 @@ def screen_game():
             m     = calc(gs.companies[sell_idx], gs)
             cname = gs.companies[sell_idx].name
             sell_company(gs, sell_idx)
+            if m["moic"] >= 2.0:   q_sound(gs, "SELL_GREAT")
+            elif m["moic"] >= 1.3: q_sound(gs, "SELL_OK")
+            else:                  q_sound(gs, "SELL_BAD")
             em = "🏆" if m["moic"]>=2.0 else "✅" if m["moic"]>=1.4 else "📉"
             st.success(f"{em} Sold **{cname}** — {m['moic']:.2f}× · {cf(m['equity'])}")
             st.rerun()
@@ -874,6 +1014,7 @@ def screen_game():
         gs.deals.pop(buy_idx)
         gs.event_log.insert(0, f"Closed {d.name}. {d.ceo} is 'excited about the partnership.'")
         gs.event_log = gs.event_log[:4]
+        q_sound(gs, "BUY")
         st.rerun()
 
     # ── Exits log ─────────────────────────────────────────────
@@ -908,6 +1049,12 @@ def screen_game():
 # ─────────────────────────────────────────────
 def screen_score():
     gs    = G()
+    # Play score fanfare once
+    if not st.session_state.get("score_sound_played"):
+        st.session_state["score_sound_played"] = True
+        n_hit = sum(1 for p in check_paths(gs).values() if p["hit"])
+        q_sound(gs, "VICTORY" if n_hit >= 1 else "GRADE_C")
+    flush_sounds(gs)
     cfg   = DIFFICULTY[gs.difficulty]
     bm    = blended_moic(gs)
     paths = check_paths(gs)
@@ -948,6 +1095,7 @@ def screen_score():
     with c2:
         nl = f"Start {unlock['fund']} →" if fn < 3 else "🔄 New Fund"
         if st.button(nl, use_container_width=True, key="fund_next"):
+            st.session_state["score_sound_played"] = False
             if fn < 3:
                 new_gs = GameState(
                     screen="game", difficulty=gs.difficulty, cash=next_cash,
@@ -963,6 +1111,7 @@ def screen_score():
             st.rerun()
     with c3:
         if st.button("🔄 New Game", use_container_width=True, key="new_game"):
+            st.session_state["score_sound_played"] = False
             del st.session_state["gs"]; st.rerun()
 
     # ── Paths breakdown ───────────────────────────────────────
