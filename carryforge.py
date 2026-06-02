@@ -1,14 +1,15 @@
 """
-CarryForge v10.0
+CarryForge v11.0
 ================
-- Sound: injects Web Audio API into window.parent (fixes height=0 iframe silence)
-- Nav:   fixed BitLife-style bottom bar via window.parent injection +
-         React input bridge for tab state changes
-- Layout: 5 tabs (Home / Deals / Portfolio / Events / Fund), each focused
+- CRASH FIX: AttributeError sound_queue missing from old sessions → G() migration
+- API FIX: st.components.v1.html → st.iframe (Streamlit 1.58)
+- API FIX: use_container_width removed (CSS handles full-width)
+- LAYOUT: Desktop shows ALL sections in one scroll (no tabs).
+          Mobile keeps BitLife bottom nav + single-section focus.
+- SOUND: window.parent injection still works; iframe height=1 (not 0)
 """
 
 import streamlit as st
-import streamlit.components.v1 as components
 import numpy as np
 import random
 from dataclasses import dataclass, field
@@ -29,8 +30,20 @@ st.markdown("""
   }
   html,body,.stApp{background:var(--bg)!important;color:var(--text);}
   #MainMenu,footer,header{visibility:hidden;}
-  /* room for bottom nav */
+  /* mobile: room for bottom nav */
   .block-container{padding:.9rem 1rem 5.5rem;max-width:960px;margin:0 auto;}
+
+  /* ── Desktop: full layout, no bottom nav ── */
+  @media (min-width:900px){
+    .block-container{padding:.9rem 2rem 2rem!important;max-width:1280px!important;}
+    #_cf_nav{display:none!important;}          /* hide bottom nav on desktop */
+    .mobile-hint{display:none!important;}
+  }
+  /* ── Mobile: focused single section ── */
+  @media (max-width:899px){
+    .desktop-section{display:none!important;}  /* show only active section */
+    .desktop-section.cf-active{display:block!important;}
+  }
 
   h1{font-size:1.6rem;font-weight:800;margin:0;}
   h2{font-size:1.1rem;font-weight:700;margin:.75rem 0 .4rem;}
@@ -440,8 +453,13 @@ def advance_quarter(gs:GameState):
 # ─────────────────────────────────────────────
 def G() -> GameState:
     if "gs" not in st.session_state:
-        st.session_state.gs=GameState()
-    return st.session_state.gs
+        st.session_state.gs = GameState()
+    gs = st.session_state.gs
+    # Migrate old sessions that predate new fields
+    if not hasattr(gs, "sound_queue"): gs.sound_queue = []
+    if not hasattr(gs, "season_shown"): gs.season_shown = 0
+    if not hasattr(gs, "forced_exit_id"): gs.forced_exit_id = ""
+    return gs
 
 def get_tab() -> str:
     return st.session_state.get("tab","home")
@@ -455,7 +473,9 @@ def lpc(s): return "#10b981" if s>=60 else "#f59e0b" if s>=35 else "#ef4444"
 def hdot(m): return "🟢" if m>=1.10 else ("🔴" if m<=0.85 else "🟡")
 
 # ─────────────────────────────────────────────
-# SOUND + BOTTOM NAV  (injected into window.parent)
+# SOUND + BOTTOM NAV
+# st.iframe (Streamlit 1.58 replacement for components.html)
+# Iframe JS uses window.parent to access main page AudioContext
 # ─────────────────────────────────────────────
 _AUDIO_JS = r"""
 window._cfPlay = function(snd) {
@@ -506,15 +526,16 @@ window._cfPlay = function(snd) {
 };
 """
 
-def flush_sounds(gs:GameState, extra:str=""):
-    """Play queued sounds by injecting audio engine into window.parent."""
-    snds = list(gs.sound_queue)
+def flush_sounds(gs: GameState, extra: str = ""):
+    """Play queued sounds via st.iframe (Streamlit 1.58 API)."""
+    snds = list(getattr(gs, "sound_queue", []))
     if extra: snds.append(extra)
     gs.sound_queue = []
-    calls = "".join(f"window._cfPlay('{s}');" for s in snds)
-    if not calls: return
-    # height=50 ensures the iframe is active and scripts execute
-    components.html(f"""
+    if not snds: return
+    # Build calls string — run in parent frame via window.parent
+    calls = "".join(f"window.parent._cfPlay('{s}');" for s in snds)
+    import base64, random as _r
+    html = f"""
     <script>
     (function(){{
       if(!window.parent._cfPlay){{
@@ -525,8 +546,10 @@ def flush_sounds(gs:GameState, extra:str=""):
       {calls}
     }})();
     </script>
-    <div style="height:1px;background:transparent;"></div>
-    """, height=50, scrolling=False)
+    <div style="width:1px;height:1px;opacity:0"><!-- {_r.random()} --></div>
+    """
+    b64 = base64.b64encode(html.encode()).decode()
+    st.iframe(f"data:text/html;base64,{b64}", height=1, scrolling=False)
 
 
 def inject_bottom_nav(active_tab:str, has_event:bool=False):
@@ -542,88 +565,74 @@ def inject_bottom_nav(active_tab:str, has_event:bool=False):
     active_js = active_tab
     badge_js = "true" if has_event else "false"
 
-    components.html(f"""
+    import base64, random as _r
+    html = f"""
     <script>
     (function() {{
       var TABS = {nav_items_js};
       var active = "{active_js}";
       var hasBadge = {badge_js};
 
-      // Helper: trigger a React-controlled input change in the parent frame
-      function setParentInput(newVal) {{
-        var inputs = window.parent.document.querySelectorAll('input[data-testid="stTextInput-Input"]');
-        if (!inputs.length) {{
-          inputs = window.parent.document.querySelectorAll('input[type="text"]');
-        }}
-        var inp = inputs[0];
-        if (!inp) return;
-        var setter = Object.getOwnPropertyDescriptor(window.parent.HTMLInputElement.prototype, 'value').set;
-        setter.call(inp, newVal);
-        inp.dispatchEvent(new window.parent.Event('input', {{bubbles: true}}));
+      // Only show on mobile (≥900px = desktop, nav hidden by CSS already,
+      // but skip injection entirely to avoid unnecessary DOM work)
+      if (window.parent.innerWidth >= 900) {{
+        var old = window.parent.document.getElementById('_cf_nav');
+        if (old) old.remove();
+        return;
       }}
 
-      // Remove stale nav if it exists and active tab changed
+      function setParentInput(newVal) {{
+        var inp = window.parent.document.querySelector('input[data-testid="stTextInput-Input"]')
+                  || window.parent.document.querySelector('input[type="text"]');
+        if (!inp) return;
+        var setter = Object.getOwnPropertyDescriptor(window.parent.HTMLInputElement.prototype,'value').set;
+        setter.call(inp, newVal);
+        inp.dispatchEvent(new window.parent.Event('input',{{bubbles:true}}));
+      }}
+
+      // Scroll to section anchor
+      function scrollTo(key) {{
+        var el = window.parent.document.querySelector('[data-cf-section="' + key + '"]');
+        if (el) el.scrollIntoView({{behavior:'smooth', block:'start'}});
+      }}
+
       var existing = window.parent.document.getElementById('_cf_nav');
       if (existing) {{
-        var cur = existing.getAttribute('data-active');
-        if (cur === active) return;   // no change needed, skip re-render
+        if (existing.getAttribute('data-active') === active) return;
         existing.remove();
       }}
 
-      // Build nav bar
       var nav = window.parent.document.createElement('div');
       nav.id = '_cf_nav';
       nav.setAttribute('data-active', active);
-
-      var style = `
-        position: fixed;
-        bottom: 0; left: 0; right: 0;
-        background: #0d1223;
-        border-top: 1px solid rgba(255,255,255,.1);
-        display: flex;
-        z-index: 99999;
-        padding: 6px 0 max(8px, env(safe-area-inset-bottom));
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      `;
-      nav.style.cssText = style;
+      nav.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#0d1223;'
+        + 'border-top:1px solid rgba(255,255,255,.1);display:flex;z-index:99999;'
+        + 'padding:6px 0 max(8px,env(safe-area-inset-bottom));'
+        + 'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;';
 
       TABS.forEach(function(tab) {{
-        var key = tab[0], icon = tab[1], label = tab[2];
-        var isActive = (key === active);
+        var key=tab[0], icon=tab[1], label=tab[2], isActive=(key===active);
         var item = window.parent.document.createElement('button');
-        item.setAttribute('data-tab', key);
         item.innerHTML = '<span style="font-size:1.3rem;display:block;line-height:1;">'
-          + icon
-          + (key==='events' && hasBadge ? '<sup style="font-size:.5rem;color:#ef4444;vertical-align:super;">●</sup>' : '')
-          + '</span>'
-          + '<span style="font-size:.58rem;display:block;margin-top:2px;font-weight:' + (isActive?'700':'500') + ';">'
-          + label
-          + '</span>';
-
-        item.style.cssText = [
-          'flex:1',
-          'background:none',
-          'border:none',
-          'color:' + (isActive ? '#10b981' : '#64748b'),
-          'cursor:pointer',
-          'padding:4px 2px',
-          'transition:color .2s',
-          'outline:none',
-          '-webkit-tap-highlight-color:transparent',
-        ].join(';');
-
+          + icon + (key==='events'&&hasBadge?'<sup style="font-size:.5rem;color:#ef4444">●</sup>':'')
+          + '</span><span style="font-size:.58rem;display:block;margin-top:2px;font-weight:'
+          + (isActive?'700':'500') + ';">' + label + '</span>';
+        item.style.cssText = 'flex:1;background:none;border:none;cursor:pointer;padding:4px 2px;'
+          + 'color:' + (isActive?'#10b981':'#64748b') + ';outline:none;'
+          + '-webkit-tap-highlight-color:transparent;transition:color .2s;';
         item.addEventListener('click', function() {{
+          scrollTo(key);
           setParentInput(key);
         }});
-
         nav.appendChild(item);
       }});
-
       window.parent.document.body.appendChild(nav);
     }})();
     </script>
-    <div style="height:1px;background:transparent;"></div>
-    """, height=50, scrolling=False)
+    <div style="width:1px;height:1px;opacity:0"><!-- {_r.random()} --></div>
+    """
+    b64 = base64.b64encode(html.encode()).decode()
+    st.iframe(f"data:text/html;base64,{b64}", height=1, scrolling=False)
 
 
 # ─────────────────────────────────────────────
@@ -648,7 +657,7 @@ def render_header(gs:GameState):
           <div class="stat-val"><span class="{si['css']}">{si['emoji']}</span> {gs.year} Q{gs.quarter}</div>
           <div class="stat-lbl">{si['name']}</div></div>""", unsafe_allow_html=True)
     with c4:
-        if st.button(f"⏭ Next Q ({qtrs_l})", use_container_width=True, key="nq"):
+        if st.button(f"⏭ Next Q ({qtrs_l})", key="nq"):
             advance_quarter(gs); st.rerun()
 
     lp_c = lpc(gs.lp_satisfaction)
@@ -759,7 +768,7 @@ def tab_deals(gs:GameState):
             </div>""", unsafe_allow_html=True)
         with cc:
             lbl = "Buy" if can else ("Full" if full else "💸")
-            if st.button(lbl, key=f"buy_{i}_{gs.quarter_num}", use_container_width=True, disabled=not can):
+            if st.button(lbl, key=f"buy_{i}_{gs.quarter_num}", disabled=not can):
                 buy_idx = i
 
     if buy_idx is not None:
@@ -810,7 +819,7 @@ def tab_portfolio(gs:GameState):
                 <div class="stat-lbl">IRR</div></div>
             </div>""", unsafe_allow_html=True)
         with cc:
-            if st.button("Sell", key=f"sell_{i}_{gs.quarter_num}", use_container_width=True):
+            if st.button("Sell", key=f"sell_{i}_{gs.quarter_num}"):
                 sell_idx = i
 
     if sell_idx is not None:
@@ -925,7 +934,7 @@ def screen_event(gs:GameState):
     for i, ch in enumerate(choices):
         with cols[i]:
             st.markdown('<div class="choice-btn">', unsafe_allow_html=True)
-            if st.button(ch["label"], key=f"ch_{i}_{gs.quarter_num}", use_container_width=True):
+            if st.button(ch["label"], key=f"ch_{i}_{gs.quarter_num}"):
                 apply_effect(gs, ch.get("effect","nothing"), ev.get("cid"))
                 if gs.forced_exit_id:
                     idx=next((j for j,c in enumerate(gs.companies) if c.id==gs.forced_exit_id),None)
@@ -966,7 +975,7 @@ def screen_start():
             <span>🤝 Keep LPs ≥{p['lp']}</span>
             <span>🏆 {p['exits']} exits</span>
           </div></div>""", unsafe_allow_html=True)
-        if st.form_submit_button("Start Fund I →", use_container_width=True):
+        if st.form_submit_button("Start Fund I →"):
             ph=random.choice(FIRM_DEFAULTS); cfg=DIFFICULTY[diff]
             gs=GameState(screen="game",difficulty=diff,cash=cfg["cash"],
                 lp_satisfaction=cfg["lp_start"],
@@ -983,7 +992,7 @@ def screen_start():
 def screen_game():
     gs = G()
 
-    # ── Tab bus: hidden text input that JS nav writes to ──────
+    # Tab bus: hidden text input JS nav writes to (mobile only)
     current_tab_raw = st.text_input("_tab", value=get_tab(), key="tab_input",
                                      label_visibility="collapsed")
     if current_tab_raw != get_tab():
@@ -991,27 +1000,33 @@ def screen_game():
         st.rerun()
 
     active_tab = get_tab()
-
-    # ── Flush sounds first so they play ASAP after action ─────
     flush_sounds(gs)
-
-    # ── Shared header ─────────────────────────────────────────
     render_header(gs)
 
-    # ── Event interrupt ───────────────────────────────────────
     if gs.pending_event:
         screen_event(gs)
-    else:
-        # ── Tab content ───────────────────────────────────────
-        if   active_tab == "home":      tab_home(gs)
-        elif active_tab == "deals":     tab_deals(gs)
-        elif active_tab == "portfolio": tab_portfolio(gs)
-        elif active_tab == "events":    tab_events(gs)
-        elif active_tab == "fund":      tab_fund(gs)
+        inject_bottom_nav(active_tab, has_event=True)
+        return
 
-    # ── Bottom nav injection ──────────────────────────────────
-    has_event = bool(gs.pending_event)
-    inject_bottom_nav(active_tab, has_event=has_event)
+    # ── Section helper: adds anchor + CSS class for show/hide on mobile ──
+    def section(key, label_fn):
+        """Wrap a section so CSS can show/hide it on mobile based on active tab."""
+        active_cls = "cf-active" if key == active_tab else ""
+        st.markdown(
+            f'<div data-cf-section="{key}" class="desktop-section {active_cls}" '
+            f'style="scroll-margin-top:64px"></div>',
+            unsafe_allow_html=True
+        )
+        label_fn(gs)
+
+    # ── Desktop: all sections visible; Mobile: only active section ──────
+    section("home",      tab_home)
+    section("deals",     tab_deals)
+    section("portfolio", tab_portfolio)
+    section("events",    tab_events)
+    section("fund",      tab_fund)
+
+    inject_bottom_nav(active_tab, has_event=False)
 
 
 def screen_score():
@@ -1054,7 +1069,7 @@ def screen_score():
     _, c2, c3 = st.columns([1,1,1])
     with c2:
         nl=f"Start {unlock['fund']} →" if fn<3 else "🔄 New Fund"
-        if st.button(nl, use_container_width=True, key="fn"):
+        if st.button(nl, key="fn"):
             st.session_state["score_sound_played"]=False
             if fn<3:
                 ng=GameState(screen="game",difficulty=gs.difficulty,cash=next_cash,
@@ -1069,7 +1084,7 @@ def screen_score():
                 del st.session_state["gs"]
             st.rerun()
     with c3:
-        if st.button("🔄 New Game", use_container_width=True, key="ng"):
+        if st.button("🔄 New Game", key="ng"):
             st.session_state["score_sound_played"]=False
             del st.session_state["gs"]; st.rerun()
 
