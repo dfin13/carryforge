@@ -1489,12 +1489,13 @@ def tab_market(gs: GameState):
         ))
         fig_map.update_layout(
             geo=dict(
-                showframe=False, showcoastlines=True, coastlinecolor='rgba(255,255,255,.08)',
-                showland=True, landcolor='#141928',
-                showocean=True, oceancolor='#0d111e',
-                showlakes=False, bgcolor='rgba(0,0,0,0)',
+                showframe=False,
+                showcoastlines=True, coastlinecolor='rgba(255,255,255,.08)',
+                showland=True,      landcolor='#141928',
+                showocean=True,     oceancolor='#0d111e',
+                showlakes=False,
                 projection_type='natural earth',
-                showgrid=False,
+                # bgcolor / showgrid are not valid geo keys in Plotly 6.x
             ),
             paper_bgcolor='rgba(0,0,0,0)',
             height=280, margin=dict(l=0, r=0, t=0, b=0),
