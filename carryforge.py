@@ -26,7 +26,7 @@ import plotly.graph_objects as go
 
 st.set_page_config(
     page_title="CarryForge",
-    page_icon="💼",
+    page_icon=":briefcase:",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -358,29 +358,30 @@ except Exception:
     pass
 
 SEASONS = {
-    1: {"name":"Bull Run","emoji":"🟢","css":"s1c","exit_mod":1.15,"growth_mod":1.10,
+    1: {"name":"Bull Run","dot":"#4ade80","css":"s1c","exit_mod":1.15,"growth_mod":1.10,
         "title":"The Bull Is Running",
         "text":"Rates near zero. Every growth equity fund in NYC has more capital than ideas. "
                "Sellers know it. Price accordingly."},
-    2: {"name":"The Turn","emoji":"🟡","css":"s2c","exit_mod":1.00,"growth_mod":0.95,
+    2: {"name":"The Turn","dot":"#fbbf24","css":"s2c","exit_mod":1.00,"growth_mod":0.95,
         "title":"The Market Has Turned",
         "text":"Easy money is gone. Buyers are more selective. Your LPs have started "
                "CC'ing their advisors on emails."},
-    3: {"name":"The Reckoning","emoji":"🔴","css":"s3c","exit_mod":0.85,"growth_mod":0.88,
+    3: {"name":"The Reckoning","dot":"#f87171","css":"s3c","exit_mod":0.85,"growth_mod":0.88,
         "title":"Batten Down the Hatches",
         "text":"Rates up 300bps. Debt markets nearly closed. Companies that haven't "
                "exited are sitting a while longer."},
 }
 
+# Sectors: abbr = display tag, css = card gradient class
 SECTORS = {
-    "SaaS":       {"emoji":"💻","css":"card-saas","rev":(40,180),"margin":(.28,.50),"growth":(.12,.38)},
-    "Hardware":   {"emoji":"🔧","css":"card-hw",  "rev":(90,320),"margin":(.08,.20),"growth":(.04,.16)},
-    "Healthcare": {"emoji":"🏥","css":"card-health","rev":(70,260),"margin":(.14,.30),"growth":(.08,.24)},
-    "Fintech":    {"emoji":"💰","css":"card-fin",  "rev":(35,130),"margin":(.22,.45),"growth":(.22,.50)},
-    "Logistics":  {"emoji":"📦","css":"card-log",  "rev":(100,400),"margin":(.06,.14),"growth":(.05,.14)},
-    "Media":      {"emoji":"📱","css":"card-media","rev":(30,110),"margin":(.15,.32),"growth":(.10,.30)},
-    "Industrial": {"emoji":"⚙️","css":"card-ind", "rev":(120,380),"margin":(.08,.16),"growth":(.04,.12)},
-    "Consumer":   {"emoji":"🛍","css":"card-con", "rev":(60,220),"margin":(.10,.22),"growth":(.06,.18)},
+    "SaaS":       {"abbr":"SW",  "css":"card-saas",  "rev":(40,180), "margin":(.28,.50),"growth":(.12,.38)},
+    "Hardware":   {"abbr":"HW",  "css":"card-hw",    "rev":(90,320), "margin":(.08,.20),"growth":(.04,.16)},
+    "Healthcare": {"abbr":"HC",  "css":"card-health","rev":(70,260), "margin":(.14,.30),"growth":(.08,.24)},
+    "Fintech":    {"abbr":"FT",  "css":"card-fin",   "rev":(35,130), "margin":(.22,.45),"growth":(.22,.50)},
+    "Logistics":  {"abbr":"LG",  "css":"card-log",   "rev":(100,400),"margin":(.06,.14),"growth":(.05,.14)},
+    "Media":      {"abbr":"MD",  "css":"card-media", "rev":(30,110), "margin":(.15,.32),"growth":(.10,.30)},
+    "Industrial": {"abbr":"IN",  "css":"card-ind",   "rev":(120,380),"margin":(.08,.16),"growth":(.04,.12)},
+    "Consumer":   {"abbr":"CS",  "css":"card-con",   "rev":(60,220), "margin":(.10,.22),"growth":(.06,.18)},
 }
 
 SECTOR_DOT_COLOR = {
@@ -407,26 +408,26 @@ COMPANY_NAMES = {
 }
 
 RIVAL_FIRMS = [
-    {"name":"Apex Capital","emoji":"🦅","style":"aggressive","motto":"We don't pass. We outbid."},
-    {"name":"Redwood PE","emoji":"🌲","style":"conservative","motto":"Boring is beautiful."},
-    {"name":"Meridian Partners","emoji":"🐍","style":"sleazy","motto":"Relationships. Always."},
-    {"name":"Pinnacle Fund","emoji":"🏔","style":"arrogant","motto":"Second place is first loser."},
+    {"name":"Apex Capital","initials":"AC","color":"#f87171","style":"aggressive","motto":"We don't pass. We outbid."},
+    {"name":"Redwood PE","initials":"RW","color":"#4ade80","style":"conservative","motto":"Boring is beautiful."},
+    {"name":"Meridian Partners","initials":"MP","color":"#a78bfa","style":"sleazy","motto":"Relationships. Always."},
+    {"name":"Pinnacle Fund","initials":"PF","color":"#fbbf24","style":"arrogant","motto":"Second place is first loser."},
 ]
 
 LP_CHARACTERS = [
-    {"name":"Dr. Eleanor Voss","type":"Westfield Endowment","emoji":"🎓","personality":"conservative",
+    {"name":"Dr. Eleanor Voss","type":"Westfield Endowment","initials":"EV","color":"#60a5fa","personality":"conservative",
      "trait":"Demands quarterly ESG updates. Loves 10-year IRR charts.",
      "happy_msg":["Impressed with your discipline.", "The board was pleased this quarter.", "Exactly what we expected from you."],
      "angry_msg":["We're concerned about the leverage.", "Expected better DPI by now.", "My investment committee is asking questions."]},
-    {"name":"Mike Carbone","type":"CalPERS West","emoji":"🏛","personality":"aggressive",
+    {"name":"Mike Carbone","type":"CalPERS West","initials":"MC","color":"#f87171","personality":"aggressive",
      "trait":"Wants top-quartile returns. 'Don't bore me with process.'",
      "happy_msg":["Now we're talking. Keep pushing.", "That's what I like to see.", "The committee is smiling. Good work."],
      "angry_msg":["These returns are embarrassing.", "My buddy at Apex is killing it.", "Give me a reason not to pull out."]},
-    {"name":"Hartley & Hartley","type":"Family Office","emoji":"👔","personality":"relationship",
+    {"name":"Hartley & Hartley","type":"Family Office","initials":"HH","color":"#fbbf24","personality":"relationship",
      "trait":"Three generations of investing. Values honesty and quarterly calls.",
      "happy_msg":["Pleasure doing business, as always.", "The family is happy. That matters.", "Worth every dollar of carry."],
      "angry_msg":["Father wouldn't have tolerated this.", "We expected a call, not a deck.", "Trust is everything."]},
-    {"name":"Atlas Foundation","type":"Nonprofit Endowment","emoji":"🌍","personality":"esg",
+    {"name":"Atlas Foundation","type":"Nonprofit Endowment","initials":"AF","color":"#34d399","personality":"esg",
      "trait":"ESG-focused. Refuses to back extractive industries or high-polluters.",
      "happy_msg":["This aligns with our mission beautifully.", "Great returns. Great impact.", "The board gave a standing ovation."],
      "angry_msg":["This company's carbon footprint is unacceptable.", "Returns don't justify the harm.", "We need to discuss compliance."]},
@@ -452,7 +453,7 @@ UNLOCKS = {
 # ─────────────────────────────────────────────────────────────────────────────
 
 NARRATIVE_EVENTS = [
-    {"id":"ceo_poached","type":"crisis","title":"Your CEO Got Poached","icon":"😬",
+    {"id":"ceo_poached","type":"crisis","title":"Your CEO Got Poached","icon":"",
      "template":"**{ceo}** — CEO of {co} — just got a $2.8M offer from {rival}. "
                 "They called from the school parking lot.",
      "choices":[
@@ -460,35 +461,35 @@ NARRATIVE_EVENTS = [
         {"label":"Match salary only","effect":"ceo_slows"},
         {"label":"Wish them luck. Start a search.","effect":"ceo_gone"},
      ]},
-    {"id":"ceo_arrested","type":"crisis","title":"Legal Situation","icon":"🚔",
+    {"id":"ceo_arrested","type":"crisis","title":"Legal Situation","icon":"",
      "template":"CEO of {co}, **{ceo}**, was arrested. 'Unrelated to business.' SEC says otherwise.",
      "choices":[
         {"label":"Terminate immediately. PR blackout.","effect":"ceo_fired_clean"},
         {"label":"Hire crisis lawyer, ride it out","effect":"crisis_lawyer"},
         {"label":"Back them publicly","effect":"disaster"},
      ]},
-    {"id":"big_contract","type":"opportunity","title":"Enterprise Contract","icon":"🤝",
+    {"id":"big_contract","type":"opportunity","title":"Enterprise Contract","icon":"",
      "template":"{co} got an LOI from a Fortune 50 — $14M ARR adding ~32% to revenue overnight.",
      "choices":[
         {"label":"Staff up fast — hire 45 people","effect":"big_growth"},
         {"label":"Sign it, figure out delivery later","effect":"medium_growth"},
         {"label":"Pass — too much execution risk","effect":"nothing"},
      ]},
-    {"id":"customer_churn","type":"crisis","title":"Client Just Walked","icon":"💨",
+    {"id":"customer_churn","type":"crisis","title":"Client Just Walked","icon":"",
      "template":"{co}'s largest customer — 19% of ARR — terminated. Their CFO: 'a nice experiment.'",
      "choices":[
         {"label":"Fly out, offer discount to stay","effect":"partial_save"},
         {"label":"Accept it and focus on pipeline","effect":"slight_miss"},
         {"label":"Sue for breach","effect":"litigation"},
      ]},
-    {"id":"rival_bid","type":"rival","title":"Competing Bid","icon":"😤",
+    {"id":"rival_bid","type":"rival","title":"Competing Bid","icon":"",
      "template":"**{rival}** just bid $9M over your offer for {co}. 'Using leverage we'd never touch.'",
      "choices":[
         {"label":"Walk away — discipline first","effect":"deal_lost"},
         {"label":"Match, tighten terms elsewhere","effect":"deal_expensive"},
         {"label":"Go lower, pitch operational value","effect":"deal_clever"},
      ]},
-    {"id":"rival_email","type":"rival","title":"Interesting Email","icon":"📧",
+    {"id":"rival_email","type":"rival","title":"Interesting Email","icon":"",
      "template":"Email from **{rival}**: *'Heard you picked up {co}. Brave given the cap table. "
                 "Let us know when you're ready to recap at a fair price.'*",
      "choices":[
@@ -496,7 +497,7 @@ NARRATIVE_EVENTS = [
         {"label":"Ignore it","effect":"nothing"},
         {"label":"Forward to LP for a laugh","effect":"lp_amused"},
      ]},
-    {"id":"lp_call","type":"lp","title":"LP on Line 1","icon":"📞",
+    {"id":"lp_call","type":"lp","title":"LP on Line 1","icon":"",
      "template":"**{lp}** calling. DPI still 0x. 'Have you considered your exit timeline?' "
                 "Call in 15 minutes.",
      "choices":[
@@ -504,28 +505,28 @@ NARRATIVE_EVENTS = [
         {"label":"Send deck — 'pipeline is strong'","effect":"bought_time"},
         {"label":"Have associate take it","effect":"lp_annoyed"},
      ]},
-    {"id":"lp_pullout","type":"lp","title":"LP Threatening Withdrawal","icon":"🚨",
+    {"id":"lp_pullout","type":"lp","title":"LP Threatening Withdrawal","icon":"",
      "template":"**{lp}** needs liquidity. Threatening to sell their stake at 30% discount.",
      "choices":[
         {"label":"Dividend recap on one company","effect":"recap_lp"},
         {"label":"Help find secondary buyer","effect":"lp_secondary"},
         {"label":"Call the bluff","effect":"lp_furious"},
      ]},
-    {"id":"unsolicited_bid","type":"opportunity","title":"Someone Wants to Buy","icon":"💸",
+    {"id":"unsolicited_bid","type":"opportunity","title":"Someone Wants to Buy","icon":"",
      "template":"Strategic buyer: unsolicited offer for {co} at 38% premium. Answer by Friday.",
      "choices":[
         {"label":"Sell — take the money","effect":"force_exit"},
         {"label":"Run a full process","effect":"auction_process"},
         {"label":"Decline — just getting started","effect":"nothing"},
      ]},
-    {"id":"add_on_deal","type":"opportunity","title":"Bolt-On Opportunity","icon":"🧩",
+    {"id":"add_on_deal","type":"opportunity","title":"Bolt-On Opportunity","icon":"",
      "template":"{co} found a smaller competitor for $9M. Adds 18% revenue and a great customer list.",
      "choices":[
         {"label":"Fund it","effect":"addon_success"},
         {"label":"Pass — keep management focused","effect":"nothing"},
         {"label":"Negotiate 20% lower first","effect":"addon_negotiate"},
      ]},
-    {"id":"rate_shock","type":"crisis","title":"Fed Rate Shock","icon":"📉",
+    {"id":"rate_shock","type":"crisis","title":"Fed Rate Shock","icon":"",
      "template":"Fed raised 75bps. Debt cost up $2.3M annually. "
                 "Blackstone sent 'Navigating the New Normal.' You deleted it.",
      "choices":[
@@ -533,14 +534,14 @@ NARRATIVE_EVENTS = [
         {"label":"Accelerate exits","effect":"pressure_exit"},
         {"label":"Weather it","effect":"slight_miss"},
      ]},
-    {"id":"sector_hot","type":"opportunity","title":"Your Sector Is Hot","icon":"🔥",
+    {"id":"sector_hot","type":"opportunity","title":"Your Sector Is Hot","icon":"",
      "template":"{co}'s sector on Fortune cover. Exit multiples doubled from a year ago.",
      "choices":[
         {"label":"Exit now at peak multiples","effect":"force_exit"},
         {"label":"Hold — ride the wave","effect":"risky_hold"},
         {"label":"Hire tier-1 CEO to prep for sale","effect":"ceo_upgrade"},
      ]},
-    {"id":"mgmt_fight","type":"crisis","title":"Board Meeting Gone Wrong","icon":"🥊",
+    {"id":"mgmt_fight","type":"crisis","title":"Board Meeting Gone Wrong","icon":"",
      "template":"**{ceo}** and your operating partner aren't speaking after last board meeting. "
                 "CFO: 'That was not great.'",
      "choices":[
@@ -548,21 +549,21 @@ NARRATIVE_EVENTS = [
         {"label":"Side with the OP — shake up management","effect":"ceo_gone"},
         {"label":"Bring in a mediator","effect":"slow_resolution"},
      ]},
-    {"id":"ipo_buzz","type":"opportunity","title":"Bankers Calling","icon":"🏦",
+    {"id":"ipo_buzz","type":"opportunity","title":"Bankers Calling","icon":"",
      "template":"Goldman and Morgan both pitching IPO for {co}. Analyst: 'Exactly what the market wants.'",
      "choices":[
         {"label":"Set up a bake-off","effect":"ipo_process"},
         {"label":"Too early — wait another year","effect":"nothing"},
         {"label":"Take lunch but say no","effect":"nothing"},
      ]},
-    {"id":"key_departure","type":"crisis","title":"Key Person Risk","icon":"👤",
+    {"id":"key_departure","type":"crisis","title":"Key Person Risk","icon":"",
      "template":"{co}'s CTO — author of 60% of the codebase — just handed in their notice.",
      "choices":[
         {"label":"Aggressive retention package","effect":"key_retained"},
         {"label":"Restructure team, promote from within","effect":"mgmt_stable"},
         {"label":"External search immediately","effect":"slight_miss"},
      ]},
-    {"id":"partnership","type":"opportunity","title":"Strategic Partnership","icon":"🤝",
+    {"id":"partnership","type":"opportunity","title":"Strategic Partnership","icon":"",
      "template":"{co} offered an exclusive distribution deal with a 500-store retail chain.",
      "choices":[
         {"label":"Sign the exclusive","effect":"big_growth"},
@@ -745,10 +746,38 @@ def get_tab() -> str:
 def mc(v):   return "g" if v >= 2.0 else "go" if v >= 1.3 else "r"
 def cf(v):   return f"${v/1e9:.2f}B" if abs(v) >= 1e9 else f"${v/1e6:.1f}M"
 def lpc(s):  return "#4ade80" if s >= 60 else "#fbbf24" if s >= 35 else "#f87171"
-def hdot(m): return "🟢" if m >= 1.10 else ("🔴" if m <= 0.85 else "🟡")
+def hdot(m):
+    c = "#4ade80" if m >= 1.10 else ("#f87171" if m <= 0.85 else "#fbbf24")
+    return f'<span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:{c};vertical-align:middle;margin-right:4px"></span>'
+
 def sdot(sector):
     c = SECTOR_DOT_COLOR.get(sector, "#64748b")
     return f'<span class="dot" style="background:{c}"></span>'
+
+def sector_tag(sector: str) -> str:
+    """Colored sector abbreviation badge — replaces emoji."""
+    abbr  = SECTORS.get(sector, {}).get("abbr", sector[:2].upper())
+    color = SECTOR_DOT_COLOR.get(sector, "#64748b")
+    return (f'<span style="display:inline-block;background:{color}18;color:{color};'
+            f'border:1px solid {color}44;border-radius:4px;padding:1px 6px;'
+            f'font-size:.62rem;font-weight:800;letter-spacing:.06em">{abbr}</span>')
+
+def type_badge(ev_type: str) -> str:
+    """Event type badge — replaces emoji icon in event cards."""
+    styles = {
+        "crisis":      "#f87171",
+        "opportunity": "#4ade80",
+        "rival":       "#a78bfa",
+        "lp":          "#fbbf24",
+        "season":      "#60a5fa",
+    }
+    labels = {"crisis":"CRISIS","opportunity":"OPP","rival":"RIVAL","lp":"LP","season":"MARKET"}
+    c = styles.get(ev_type, "#64748b")
+    l = labels.get(ev_type, ev_type.upper())
+    return (f'<span style="display:inline-block;background:{c}18;color:{c};'
+            f'border:1px solid {c}44;border-radius:4px;padding:2px 8px;'
+            f'font-size:.62rem;font-weight:800;letter-spacing:.08em">{l}</span>')
+
 def sec_head(label: str):
     st.markdown(f'<div class="sec"><span>{label}</span><hr></div>', unsafe_allow_html=True)
 
@@ -885,13 +914,13 @@ def check_paths(gs: GameState) -> dict:
     tot = gs.total_quarters
     return {
         "returns": {"hit": bm >= cfg["moic"], "target": cfg["moic"], "actual": round(bm, 2),
-                    "label": "💰 Returns King", "desc": f"Hit {cfg['moic']}× MOIC",
+                    "label": "Returns King", "desc": f"Hit {cfg['moic']}× MOIC",
                     "pace": "ahead" if bm/cfg["moic"]/(q/tot) > 1.1 else "behind" if bm/cfg["moic"]/(q/tot) < 0.65 else "ok"},
         "lp":      {"hit": gs.lp_satisfaction >= cfg["lp"], "target": cfg["lp"], "actual": gs.lp_satisfaction,
-                    "label": "🤝 LP Legend", "desc": f"Keep LPs ≥{cfg['lp']}",
+                    "label": "LP Legend", "desc": f"Keep LPs ≥{cfg['lp']}",
                     "pace": "ahead" if gs.lp_satisfaction >= cfg["lp"] else "behind"},
         "exits":   {"hit": len(gs.exited) >= cfg["exits"], "target": cfg["exits"], "actual": len(gs.exited),
-                    "label": "🏆 Deal Maker", "desc": f"{cfg['exits']}+ exits",
+                    "label": "Deal Maker", "desc": f"{cfg['exits']}+ exits",
                     "pace": "ahead" if len(gs.exited)/max(cfg["exits"],1)/(q/tot) > 1.0 else "behind"},
     }
 
@@ -908,7 +937,7 @@ def sell_company(gs: GameState, idx: int) -> dict:
     gs.event_log = gs.event_log[:8]
     # Achievements
     if m["moic"] >= 3.0 and "triple" not in gs.achievements:
-        gs.achievements.append("triple"); gs.event_log.insert(0, "🏆 Achievement: First 3× exit!")
+        gs.achievements.append("triple"); gs.event_log.insert(0, "Achievement: First 3× exit!")
     return m
 
 def apply_effect(gs: GameState, key: str, cid: Optional[str]):
@@ -1032,13 +1061,15 @@ def flush_sounds(gs: GameState):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def inject_bottom_nav(active: str, badge: bool = False):
-    TABS = [("overview","🏠","Home"),("deals","🎯","Deals"),
-            ("portfolio","📊","Port."),("market","🌍","Market"),("fund","💰","Fund")]
+    # Clean text-only tabs — no emoji
+    TABS = [("overview","Home"),("deals","Deals"),
+            ("portfolio","Port."),("market","Market"),("fund","Fund")]
     import random as _r
+    tabs_js = str([(k, l) for k, l in TABS])
     components.html(f"""
     <script>
     (function(){{
-      var TABS={str([(k,i,l) for k,i,l in TABS])};
+      var TABS={tabs_js};
       var active="{active}", badge={"true" if badge else "false"};
       if(window.parent.innerWidth>=900){{
         var old=window.parent.document.getElementById('_cf_nav');
@@ -1066,15 +1097,18 @@ def inject_bottom_nav(active: str, badge: bool = False):
         +'font-family:"Space Grotesk",-apple-system,sans-serif;'
         +'backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);';
       TABS.forEach(function(tab){{
-        var key=tab[0],icon=tab[1],lbl=tab[2],isAct=(key===active);
+        var key=tab[0],lbl=tab[1],isAct=(key===active);
         var item=window.parent.document.createElement('button');
-        item.innerHTML='<span style="font-size:1.2rem;display:block;line-height:1">'+icon
-          +(key==='market'&&badge?'<sup style="font-size:.45rem;color:#f87171">●</sup>':'')
-          +'</span><span style="font-size:.56rem;display:block;margin-top:2px;font-weight:'
-          +(isAct?'700':'500')+'">'+lbl+'</span>';
-        item.style.cssText='flex:1;background:none;border:none;cursor:pointer;padding:6px 2px;'
+        /* Badge dot for market events — CSS only, no emoji */
+        var bdot = (key==='market'&&badge)
+          ? '<span style="display:inline-block;width:5px;height:5px;border-radius:50%;'
+            +'background:#f87171;vertical-align:super;margin-left:2px"></span>' : '';
+        item.innerHTML='<span style="font-size:.7rem;display:block;font-weight:'
+          +(isAct?'700':'500')+';">' + lbl + bdot + '</span>';
+        item.style.cssText='flex:1;background:none;border:none;cursor:pointer;padding:10px 2px 6px;'
           +'color:'+(isAct?'#4ade80':'#64748b')+';outline:none;'
-          +'-webkit-tap-highlight-color:transparent;transition:color .18s;';
+          +'-webkit-tap-highlight-color:transparent;transition:color .18s;'
+          +'border-top:2px solid '+(isAct?'#4ade80':'transparent')+';';
         item.addEventListener('click',function(){{
           scrollTo(key); setInput(key);
         }});
@@ -1110,7 +1144,7 @@ def render_header(gs: GameState):
           <div class="lbl">Dry Powder</div></div>""", unsafe_allow_html=True)
     with c3:
         st.markdown(f"""<div style="text-align:center;padding:.2rem 0">
-          <div class="num-md"><span class="{sc}">{si['emoji']}</span> {gs.year} Q{gs.quarter}</div>
+          <div class="num-md"><span class="{sc}">{si['dot']}</span> {gs.year} Q{gs.quarter}</div>
           <div class="lbl">{si['name']}</div></div>""", unsafe_allow_html=True)
     with c4:
         if st.button(f"⏭  Next Quarter  ({qtl})", key="nq"):
@@ -1118,10 +1152,10 @@ def render_header(gs: GameState):
 
     # LP bar
     lp_c = lpc(gs.lp_satisfaction)
-    lp_em = "😊" if gs.lp_satisfaction >= 70 else ("😐" if gs.lp_satisfaction >= 45 else "😡")
+    lp_em = "Good" if gs.lp_satisfaction >= 70 else ("Neutral" if gs.lp_satisfaction >= 45 else "Low")
     st.markdown(f"""
     <div class="lp-row">
-      <span style="font-size:.68rem;color:#64748b;white-space:nowrap">{lp_em} LPs</span>
+      <span style="font-size:.68rem;color:#64748b;white-space:nowrap">"LPs — " + lp_em</span>
       <div class="lp-track">
         <div class="lp-fill" style="width:{gs.lp_satisfaction}%;background:{lp_c};
              box-shadow:0 0 8px {lp_c}55"></div>
@@ -1129,8 +1163,8 @@ def render_header(gs: GameState):
       <span style="font-size:.7rem;color:{lp_c};font-weight:700">{gs.lp_satisfaction}/100</span>
     </div>""", unsafe_allow_html=True)
 
-    if gs.lp_satisfaction < 35:   st.error("🚨 LPs threatening to pull. Exit something now.")
-    elif gs.lp_satisfaction < 50: st.warning("⚠️ LPs getting restless. They want returns.")
+    if gs.lp_satisfaction < 35:   st.error("LPs threatening to pull. Exit something now.")
+    elif gs.lp_satisfaction < 50: st.warning("LPs getting restless. They want returns.")
 
     # Path pills
     paths = check_paths(gs)
@@ -1233,7 +1267,7 @@ def tab_overview(gs: GameState):
 
     if not gs.companies and gs.quarter_num == 0:
         st.markdown("""<div class="hint" style="margin-top:.75rem">
-          👋 <strong>Welcome to CarryForge.</strong> Head to <strong>Deals</strong>
+          <strong>Welcome to CarryForge.</strong> Head to <strong>Deals</strong>
           to source your first investment. Hit <strong>Next Quarter</strong> to grow it.
           Sell when the return looks good. Build your empire.</div>""", unsafe_allow_html=True)
 
@@ -1252,8 +1286,8 @@ def tab_deals(gs: GameState):
         can  = d.entry_equity <= gs.cash and not full
         lev  = d.entry_debt / max(d.ebitda, 1)
         dot  = SECTOR_DOT_COLOR[d.sector]
-        tier_chip = (f'<span class="chip chip-hot">🔥 Hot</span>' if d.tier == "hot"
-                     else f'<span class="chip chip-risk">⚠ Risk</span>' if d.tier == "risky" else "")
+        tier_chip = (f'<span class="chip chip-hot">HOT</span>' if d.tier == "hot"
+                     else f'<span class="chip chip-risk">RISK</span>' if d.tier == "risky" else "")
 
         ca, cb, cc = st.columns([3.2, 1.9, 1])
         with ca:
@@ -1285,7 +1319,7 @@ def tab_deals(gs: GameState):
               </div>
             </div>""", unsafe_allow_html=True)
         with cc:
-            lbl = "Buy" if can else ("Full" if full else "💸")
+            lbl = "Buy" if can else ("Full" if full else "--")
             if st.button(lbl, key=f"buy_{i}_{gs.quarter_num}", disabled=not can):
                 buy_idx = i
 
@@ -1316,9 +1350,9 @@ def tab_portfolio(gs: GameState):
         sec  = SECTORS[c.sector]
         dot  = SECTOR_DOT_COLOR[c.sector]
         yh   = m["yh"]; age = f"{yh:.1f}y" if yh >= 1 else f"{int(round(yh*4))}q"
-        status = (' <span style="color:#f87171;font-size:.7rem">⚠ damaged</span>' if c.moic_modifier < 0.85
-                  else (' <span style="color:#4ade80;font-size:.7rem">✨ boosted</span>' if c.moic_modifier > 1.15 else ""))
-        cov_warn = " 🔴" if m["leverage"] > 3.5 or m["interest_cov"] < 1.5 else ""
+        status = (' <span style="color:#f87171;font-size:.7rem">damaged</span>' if c.moic_modifier < 0.85
+                  else (' <span style="color:#4ade80;font-size:.7rem">boosted</span>' if c.moic_modifier > 1.15 else ""))
+        cov_warn = " !" if m["leverage"] > 3.5 or m["interest_cov"] < 1.5 else ""
 
         ca, cb, cc = st.columns([3.2, 1.9, 1])
         with ca:
@@ -1355,7 +1389,7 @@ def tab_portfolio(gs: GameState):
         cname = gs.companies[sell_idx].name
         sell_company(gs, sell_idx)
         gs.sound_queue.append("SELL_WIN" if m["moic"] >= 2.0 else ("SELL_OK" if m["moic"] >= 1.3 else "SELL_BAD"))
-        em = "🏆" if m["moic"] >= 2.0 else "✅" if m["moic"] >= 1.4 else "📉"
+        em = "[WIN]" if m["moic"] >= 2.0 else "[OK]" if m["moic"] >= 1.4 else "[LOSS]"
         st.success(f"{em} Sold **{cname}** — {m['moic']:.2f}× · {cf(m['equity'])}")
         st.rerun()
 
@@ -1382,7 +1416,7 @@ def tab_market(gs: GameState):
 
     sec_head("MARKET CONDITIONS")
     c1, c2, c3 = st.columns(3)
-    c1.metric("Season", f"{si['emoji']} {si['name']}", si.get("text","")[:40])
+    c1.metric("Season", f"{si['dot']} {si['name']}", si.get("text","")[:40])
     c2.metric("Exit Mult Modifier", f"{gs.exit_mult_mod:.2f}×",
               f"{(gs.exit_mult_mod-1)*100:+.0f}%")
     c3.metric("Growth Modifier", f"{gs.growth_mod:.2f}×",
@@ -1517,7 +1551,7 @@ def tab_fund(gs: GameState):
     # Unlock card
     st.markdown(f"""<div class="unlock-card" style="margin-top:.9rem">
       <div style="font-size:.65rem;color:#fbbf24;font-weight:700;text-transform:uppercase;
-           letter-spacing:.1em;margin-bottom:.35rem">🔓 On Track For</div>
+           letter-spacing:.1em;margin-bottom:.35rem">On Track For</div>
       <div style="font-size:1.1rem;font-weight:800;color:#fbbf24">{unlock['fund']} — {cf(next_cash)}</div>
       <div style="font-size:.82rem;color:#64748b;margin:.35rem 0 0">{unlock['msg']}</div>
     </div>""", unsafe_allow_html=True)
@@ -1528,10 +1562,15 @@ def tab_fund(gs: GameState):
         ok    = gs.lp_satisfaction >= 60
         col   = "#4ade80" if ok else "#fbbf24"
         msg   = random.choice(lp["happy_msg"] if ok else lp["angry_msg"])
+        lp_col = lp.get("color","#64748b")
         st.markdown(f"""
         <div class="card" style="margin-bottom:.4rem">
           <div style="display:flex;align-items:flex-start;gap:.75rem">
-            <span style="font-size:2rem;line-height:1">{lp['emoji']}</span>
+            <div style="flex-shrink:0;width:38px;height:38px;border-radius:10px;
+              background:{lp_col}18;border:1px solid {lp_col}44;
+              display:flex;align-items:center;justify-content:center;
+              font-size:.78rem;font-weight:800;color:{lp_col};letter-spacing:.02em">
+              {lp['initials']}</div>
             <div style="flex:1">
               <div style="display:flex;justify-content:space-between;align-items:center">
                 <div>
@@ -1552,13 +1591,20 @@ def tab_fund(gs: GameState):
     # Rival intel
     if gs.rival:
         sec_head("RIVAL FIRM")
+        rc = gs.rival.get("color","#a78bfa")
+        ri = gs.rival.get("initials","?")
         st.markdown(f"""
-        <div class="ev ev-rival">
-          <span style="font-size:1.5rem">{gs.rival.get('emoji','🏢')}</span>
-          <strong> {gs.rival.get('name','')}</strong>
-          <span class="mu" style="font-size:.78rem"> — {gs.rival.get('style','').capitalize()} style</span>
-          <div style="font-size:.82rem;color:#a78bfa;margin-top:.4rem;font-style:italic">
-            "{gs.rival.get('motto','')}"</div>
+        <div class="ev ev-rival" style="display:flex;align-items:flex-start;gap:.75rem">
+          <div style="flex-shrink:0;width:38px;height:38px;border-radius:10px;
+            background:{rc}18;border:1px solid {rc}44;
+            display:flex;align-items:center;justify-content:center;
+            font-size:.78rem;font-weight:800;color:{rc}">{ri}</div>
+          <div>
+            <strong>{gs.rival.get('name','')}</strong>
+            <span class="mu" style="font-size:.78rem"> — {gs.rival.get('style','').capitalize()}</span>
+            <div style="font-size:.82rem;color:{rc};margin-top:.35rem;font-style:italic">
+              "{gs.rival.get('motto','')}"</div>
+          </div>
         </div>""", unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1570,10 +1616,11 @@ def screen_event(gs: GameState):
     css = {"crisis":"ev-crisis","opportunity":"ev-opportunity",
            "rival":"ev-rival","lp":"ev-lp","season":"ev-season"}.get(ev.get("type",""),"ev-season")
 
+    badge_html = type_badge(ev.get("type",""))
     st.markdown(f"""
     <div class="ev {css}">
-      <div style="font-size:2rem;margin-bottom:.5rem">{ev.get('icon','📋')}</div>
-      <h2 style="margin:0 0 .6rem;font-size:1.15rem">{ev.get('title','')}</h2>
+      <div style="margin-bottom:.6rem">{badge_html}</div>
+      <h2 style="margin:0 0 .55rem;font-size:1.15rem">{ev.get('title','')}</h2>
       <p style="font-size:.9rem;color:#e2e8f0;line-height:1.65">{ev.get('text','')}</p>
     </div>""", unsafe_allow_html=True)
 
@@ -1605,7 +1652,7 @@ def screen_start():
     st.markdown("""
     <div style="text-align:center;padding:2.75rem 0 1.75rem">
       <div style="font-size:3.5rem;margin-bottom:.75rem;
-           filter:drop-shadow(0 0 28px rgba(74,222,128,.45))">💼</div>
+           filter:drop-shadow(0 0 28px rgba(74,222,128,.45))"></div>
       <h1 style="font-size:3.2rem;font-weight:800;letter-spacing:-.045em;
           background:linear-gradient(135deg,#4ade80 0%,#a78bfa 50%,#fbbf24 100%);
           -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:0">
@@ -1624,7 +1671,7 @@ def screen_start():
         for i, (slot, label, ts) in enumerate(saves[:3]):
             with cols[i]:
                 date_str = ts[:10] if ts else ""
-                if st.button(f"📂 {label}\n{date_str}", key=f"load_{slot}"):
+                if st.button(f"Load: {label} ({date_str})", key=f"load_{slot}"):
                     gs = load_game(slot)
                     if gs:
                         st.session_state.gs = gs
@@ -1645,12 +1692,12 @@ def screen_start():
           <div style="font-size:.65rem;color:#64748b;margin-bottom:.5rem;font-weight:700;
                text-transform:uppercase;letter-spacing:.1em">Three ways to win — hit any one</div>
           <div style="display:flex;gap:1.2rem;flex-wrap:wrap;font-size:.86rem;font-weight:600">
-            <span style="color:#4ade80">💰 {p['moic']}× MOIC</span>
-            <span style="color:#2dd4bf">🤝 LPs ≥{p['lp']}</span>
-            <span style="color:#fbbf24">🏆 {p['exits']} exits</span>
+            <span style="color:#4ade80">{p['moic']}× MOIC</span>
+            <span style="color:#2dd4bf">LPs ≥{p['lp']}</span>
+            <span style="color:#fbbf24">{p['exits']} exits</span>
           </div>
         </div>""", unsafe_allow_html=True)
-        if st.form_submit_button("🚀 Launch Fund I"):
+        if st.form_submit_button("Launch Fund I  →"):
             ph  = random.choice(FIRM_DEFAULTS); cfg = DIFFICULTY[diff]
             gs  = GameState(screen="game", difficulty=diff, cash=cfg["cash"],
                 lp_satisfaction=cfg["lp_start"],
@@ -1686,7 +1733,7 @@ def screen_game():
 
     # Desktop: Streamlit native tabs
     st.markdown("<hr>", unsafe_allow_html=True)
-    t1, t2, t3, t4, t5 = st.tabs(["🏠 Overview", "🎯 Deals", "📊 Portfolio", "🌍 Market", "💰 Fund"])
+    t1, t2, t3, t4, t5 = st.tabs(["Overview", "Deals", "Portfolio", "Market", "Fund"])
     with t1: tab_overview(gs)
     with t2: tab_deals(gs)
     with t3: tab_portfolio(gs)
@@ -1749,7 +1796,7 @@ def screen_score():
     # CTA buttons
     _, c2, c3 = st.columns([1,1,1])
     with c2:
-        nl = f"Start {unlock['fund']} →" if fn < 3 else "🔄 New Fund"
+        nl = f"Start {unlock['fund']} →" if fn < 3 else "New Fund"
         if st.button(nl, key="fund_next"):
             st.session_state["score_sound"] = False
             if fn < 3:
@@ -1769,7 +1816,7 @@ def screen_score():
             st.session_state.tab = "overview"
             st.rerun()
     with c3:
-        if st.button("🔄 New Game", key="new_game"):
+        if st.button("New Game", key="new_game"):
             st.session_state["score_sound"] = False
             del st.session_state["gs"]; st.rerun()
 
@@ -1791,7 +1838,7 @@ def screen_score():
     # Unlock
     st.markdown(f"""<div class="unlock-card" style="margin-top:.9rem">
       <div style="font-size:.65rem;color:#fbbf24;font-weight:700;text-transform:uppercase;
-           letter-spacing:.1em;margin-bottom:.4rem">{'🔓 Unlocked' if fn<3 else '🏆 Endgame'}</div>
+           letter-spacing:.1em;margin-bottom:.4rem">('Unlocked' if fn<3 else 'Endgame')</div>
       <div style="font-size:1.15rem;font-weight:800;color:#fbbf24">{unlock['fund']} · {cf(next_cash)}</div>
       <div style="font-size:.82rem;color:#64748b;margin:.4rem 0 0">{unlock['msg']}</div>
     </div>""", unsafe_allow_html=True)
