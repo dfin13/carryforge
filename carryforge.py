@@ -794,14 +794,15 @@ def make_deals(gs: GameState, n: int = 5) -> list:
     for _ in range(n):
         sector = random.choice(list(SECTORS))
         p = SECTORS[sector]
-        rev   = np.random.uniform(*p["rev"])
+        # Revenue in real $; sector ranges are in $M so multiply by 1e6
+        rev   = np.random.uniform(*p["rev"]) * 1e6
         mg    = np.random.uniform(*p["margin"])
         eb    = rev * mg
         gr    = np.random.uniform(*p["growth"])
         em    = round(np.random.uniform(6.5, 9.8), 1)
-        ev    = eb * em
-        debt  = eb * np.random.uniform(3.0, 5.2)
-        eq    = max(ev - debt, ev * 0.08)
+        ev    = eb * em          # Enterprise Value ($)
+        debt  = eb * np.random.uniform(3.0, 5.2)  # Debt ($)
+        eq    = max(ev - debt, ev * 0.08)          # Equity check ($)
         pool  = [x for x in COMPANY_NAMES.get(sector, ["Unnamed"]) if x not in used]
         if not pool: pool = COMPANY_NAMES.get(sector, ["Unnamed"])
         name  = random.choice(pool)
@@ -1381,7 +1382,7 @@ def tab_market(gs: GameState):
 
     sec_head("MARKET CONDITIONS")
     c1, c2, c3 = st.columns(3)
-    c1.metric("Season", f"{si['emoji']} {si['name']}", si["desc"] if hasattr(si, "get") else "")
+    c1.metric("Season", f"{si['emoji']} {si['name']}", si.get("text","")[:40])
     c2.metric("Exit Mult Modifier", f"{gs.exit_mult_mod:.2f}×",
               f"{(gs.exit_mult_mod-1)*100:+.0f}%")
     c3.metric("Growth Modifier", f"{gs.growth_mod:.2f}×",
