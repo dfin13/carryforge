@@ -10,6 +10,7 @@ CarryForge v11.0
 """
 
 import streamlit as st
+import streamlit.components.v1 as components   # still works; deprecation = warning not error
 import numpy as np
 import random
 from dataclasses import dataclass, field
@@ -688,15 +689,17 @@ window._cfPlay = function(snd) {
 """
 
 def flush_sounds(gs: GameState, extra: str = ""):
-    """Play queued sounds via st.iframe (Streamlit 1.58 API)."""
+    """Play queued sounds.
+    Uses components.html (same-origin iframe) so window.parent is accessible.
+    st.iframe with data: URIs has null origin → window.parent is blocked.
+    """
     snds = list(getattr(gs, "sound_queue", []))
     if extra: snds.append(extra)
     gs.sound_queue = []
     if not snds: return
-    # Build calls string — run in parent frame via window.parent
     calls = "".join(f"window.parent._cfPlay('{s}');" for s in snds)
-    import base64, random as _r
-    html = f"""
+    import random as _r
+    components.html(f"""
     <script>
     (function(){{
       if(!window.parent._cfPlay){{
@@ -708,9 +711,7 @@ def flush_sounds(gs: GameState, extra: str = ""):
     }})();
     </script>
     <div style="width:1px;height:1px;opacity:0"><!-- {_r.random()} --></div>
-    """
-    b64 = base64.b64encode(html.encode()).decode()
-    st.iframe(f"data:text/html;base64,{b64}", height=1)
+    """, height=1)
 
 
 def inject_bottom_nav(active_tab:str, has_event:bool=False):
@@ -726,7 +727,7 @@ def inject_bottom_nav(active_tab:str, has_event:bool=False):
     active_js = active_tab
     badge_js = "true" if has_event else "false"
 
-    import base64, random as _r
+    import random as _r
     html = f"""
     <script>
     (function() {{
@@ -793,8 +794,7 @@ def inject_bottom_nav(active_tab:str, has_event:bool=False):
     </script>
     <div style="width:1px;height:1px;opacity:0"><!-- {_r.random()} --></div>
     """
-    b64 = base64.b64encode(html.encode()).decode()
-    st.iframe(f"data:text/html;base64,{b64}", height=1)
+    components.html(html, height=1)
 
 
 # ─────────────────────────────────────────────
