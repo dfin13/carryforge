@@ -436,9 +436,9 @@ LP_CHARACTERS = [
 FIRM_DEFAULTS = ["Genesis Capital","Ironwood Partners","Crestview Equity","Summit PE","Clarendon Fund","Northstar PE"]
 
 DIFFICULTY = {
-    "Casual":   {"cash":70e6,"exit_mult":10.0,"quarters":12,"lp_start":82,"paths":{"moic":1.4,"lp":65,"exits":2}},
-    "Balanced": {"cash":50e6,"exit_mult":8.5, "quarters":12,"lp_start":65,"paths":{"moic":1.75,"lp":65,"exits":4}},
-    "Hardcore": {"cash":35e6,"exit_mult":7.0, "quarters":12,"lp_start":50,"paths":{"moic":2.2,"lp":58,"exits":5}},
+    "Casual":   {"cash":70e6,"exit_mult":10.0,"quarters":12,"lp_start":82,"lp_floor":25,"paths":{"moic":1.5,"lp":60,"exits":2}},
+    "Balanced": {"cash":50e6,"exit_mult":8.5, "quarters":12,"lp_start":72,"lp_floor":20,"paths":{"moic":1.8,"lp":62,"exits":3}},
+    "Hardcore": {"cash":35e6,"exit_mult":7.5, "quarters":12,"lp_start":55,"lp_floor":15,"paths":{"moic":2.2,"lp":58,"exits":4}},
 }
 
 UNLOCKS = {
@@ -574,18 +574,18 @@ NARRATIVE_EVENTS = [
 
 # Effect definitions
 EFFECTS = {
-    "ceo_stays":       {"moic_d":+.22,"msg":"CEO stayed. Equity updated. They seem pleased."},
+    "ceo_stays":       {"moic_d":+.16,"msg":"CEO stayed. Equity updated. They seem pleased."},
     "ceo_slows":       {"moic_d":-.08,"msg":"They took it. You have 90 days."},
-    "ceo_gone":        {"moic_d":-.28,"msg":"CEO out. Search firm on retainer."},
-    "ceo_fired_clean": {"moic_d":-.18,"msg":"Terminated. Legal risk contained. Business wobbling."},
+    "ceo_gone":        {"moic_d":-.18,"msg":"CEO out. Search firm on retainer."},
+    "ceo_fired_clean": {"moic_d":-.12,"msg":"Terminated. Legal risk contained. Business wobbling."},
     "crisis_lawyer":   {"moic_d":-.09,"msg":"Charges reduced. Optics still your problem."},
-    "disaster":        {"moic_d":-.42,"msg":"SEC subpoenas arrived Friday afternoon."},
-    "big_growth":      {"moic_d":+.32,"msg":"Bold bet paid. Revenue +30%. CEO insufferable."},
-    "medium_growth":   {"moic_d":+.15,"msg":"Bumpy delivery. Contract held. Client renewed."},
+    "disaster":        {"moic_d":-.28,"msg":"SEC subpoenas arrived Friday afternoon."},
+    "big_growth":      {"moic_d":+.22,"msg":"Bold bet paid. Revenue +30%. CEO insufferable."},
+    "medium_growth":   {"moic_d":+.11,"msg":"Bumpy delivery. Contract held. Client renewed."},
     "nothing":         {"moic_d":.00,"msg":"Status quo. Deck identical to last quarter."},
     "partial_save":    {"moic_d":-.07,"msg":"12-month extension. Still going to leave."},
     "slight_miss":     {"moic_d":-.11,"msg":"Revenue down 16%. Pipeline 'robust.'"},
-    "litigation":      {"moic_d":-.28,"msg":"Litigation expensive. Distraction worse."},
+    "litigation":      {"moic_d":-.18,"msg":"Litigation expensive. Distraction worse."},
     "deal_lost":       {"moic_d":.00,"msg":"Deal lost. You walk out saying 'discipline.'"},
     "deal_expensive":  {"moic_d":-.04,"msg":"Won it. Paid over market. Model needs a hero exit."},
     "deal_clever":     {"moic_d":+.09,"msg":"Seller picked you over higher bid. Reputation matters."},
@@ -598,12 +598,12 @@ EFFECTS = {
     "lp_secondary":    {"lp_d":-18,"msg":"LP sold at 32% discount. New holder emails weekly."},
     "lp_furious":      {"lp_d":-26,"msg":"Called the bluff. You're calling every LP this Friday."},
     "force_exit":      {"force_exit":True,"msg":"Company going to market. Time to find your IRR."},
-    "auction_process": {"moic_d":+.14,"msg":"Four bidders. Extracted another 20% on price."},
-    "addon_success":   {"moic_d":+.16,"msg":"Tuck-in closed. Customer cross-sell working."},
+    "auction_process": {"moic_d":+.10,"msg":"Four bidders. Extracted another 20% on price."},
+    "addon_success":   {"moic_d":+.12,"msg":"Tuck-in closed. Customer cross-sell working."},
     "addon_negotiate": {"moic_d":+.06,"msg":"Came back 20% lower. Counter-signed same afternoon."},
     "rate_hedge":      {"moic_d":+.05,"msg":"Locked 6.2% for 5 years. Feels smart already."},
     "risky_hold":      {"moic_d":+.12,"msg":"Wave didn't materialize. Multiple contracted 12%."},
-    "ceo_upgrade":     {"moic_d":+.16,"msg":"Hired ex-Stripe COO. Restructured sales week one."},
+    "ceo_upgrade":     {"moic_d":+.12,"msg":"Hired ex-Stripe COO. Restructured sales week one."},
     "mgmt_stable":     {"moic_d":+.05,"msg":"OP annoyed but professional. Board quieter."},
     "slow_resolution": {"moic_d":-.04,"msg":"Mediation took 6 weeks. Everyone technically aligned."},
     "ipo_process":     {"moic_d":+.09,"msg":"12-month process begins. Analyst calls next quarter."},
@@ -847,6 +847,33 @@ def make_deals(gs: GameState, n: int = 5) -> list:
         )
         c.pitch = make_deal_pitch(c)
         deals.append(c)
+
+    # Guarantee at least 2 affordable deals (cash trap fix — Audit #2)
+    budget = max(gs.cash * 0.55, DIFFICULTY[gs.difficulty]["cash"] * 0.40)
+    affordable = [d for d in deals if d.entry_equity <= budget]
+    if len(affordable) < 2:
+        for _ in range(8):
+            sector = random.choice(list(SECTORS))
+            p = SECTORS[sector]
+            rev2  = np.random.uniform(p["rev"][0], p["rev"][0]+(p["rev"][1]-p["rev"][0])*.4) * 1e6
+            mg2   = np.random.uniform(*p["margin"])
+            eb2   = rev2 * mg2
+            em2   = round(np.random.uniform(6.2, 7.6), 1)
+            ev2   = eb2 * em2
+            debt2 = eb2 * np.random.uniform(2.8, 4.0)
+            eq2   = max(ev2 - debt2, ev2 * 0.08)
+            if eq2 <= budget:
+                pool2 = [x for x in COMPANY_NAMES.get(sector,["Unnamed"]) if x not in {d.name for d in deals}]
+                if not pool2: pool2 = COMPANY_NAMES.get(sector,["Unnamed"])
+                name2 = random.choice(pool2)
+                sc2 = np.random.uniform(*p["growth"]); tier2 = "standard"
+                c2 = Company(id=hashlib.md5(f"{name2}{random.random()}".encode()).hexdigest()[:8],
+                    name=name2,sector=sector,ceo=random.choice(CEO_NAMES),revenue=rev2,ebitda=eb2,
+                    margin=mg2,growth=sc2,entry_multiple=em2,entry_ev=ev2,entry_debt=debt2,
+                    entry_equity=eq2,entry_quarter=gs.quarter_num,tier=tier2)
+                c2.pitch = make_deal_pitch(c2)
+                deals.append(c2); affordable.append(c2)
+                if len(affordable)>=2: break
     return deals
 
 def calc(c: Company, gs: GameState) -> dict:
@@ -866,15 +893,15 @@ def calc(c: Company, gs: GameState) -> dict:
         my    = max((yr * 4 - 8) / 4, 0)
         y_eg  = c.growth * gs.growth_mod * sm * si["growth_mod"] * ((1 - 0.07) ** my)
         yr_e  = c.revenue * ((1 + y_eg) ** yr) * c.margin
-        debt  = max(debt - max(yr_e * 0.55 - debt * 0.065, 0) * 0.35, 0)
+        debt  = max(debt - max(yr_e * 0.55 - debt * 0.065, 0) * 0.50, 0)
 
     # Current financials
     rev    = c.revenue * ((1 + eg) ** yh)
     ebitda = rev * c.margin
 
     # Peak exit window (sweet spot ~2–3.5 years)
-    pm = 0.88 + yh * 0.12 if yh < 1.0 else (1.0 + (yh - 1.0) * 0.05 if yh <= 3.0
-         else 1.10 - (yh - 3.0) * 0.04)
+    pm = 0.88 + yh * 0.12 if yh < 1.0 else (1.0 + (yh - 1.0) * 0.073 if yh <= 3.0
+         else 1.22 - (yh - 3.0) * 0.025)
 
     cfg    = DIFFICULTY[gs.difficulty]
     em     = cfg["exit_mult"] * gs.exit_mult_mod * sm * pm * si["exit_mod"]
@@ -903,7 +930,7 @@ def proj3(d: Company, gs: GameState) -> float:
 def blended_moic(gs: GameState) -> float:
     """Total portfolio + realized MOIC."""
     ti = sum(c.entry_equity for c in gs.companies) + sum(e.get("eq", 0) for e in gs.exited)
-    to = sum(calc(c, gs)["equity"] for c in gs.companies) * 0.72 + sum(e.get("proc", 0) for e in gs.exited)
+    to = sum(calc(c, gs)["equity"] for c in gs.companies) * 0.88 + sum(e.get("proc", 0) for e in gs.exited)
     return to / max(ti, 1)
 
 def check_paths(gs: GameState) -> dict:
@@ -977,7 +1004,10 @@ def advance_quarter(gs: GameState):
     gs.quarter_num += 1
     gs.sound_queue.append("TICK")
     if not gs.exited and gs.quarter_num > 4:
-        gs.lp_satisfaction = max(0, gs.lp_satisfaction - 3)
+        lp_floor = DIFFICULTY[gs.difficulty].get("lp_floor", 15)
+        gs.lp_satisfaction = max(lp_floor, gs.lp_satisfaction - 3)
+        gs.event_log.insert(0, f"LP satisfaction −3 this quarter (no exits yet). Exit a company to stabilize.")
+        gs.event_log = gs.event_log[:8]
     gs.deals = make_deals(gs, 5)
     if gs.quarter_num >= gs.total_quarters:
         gs.screen = "score"; return
@@ -989,7 +1019,7 @@ def advance_quarter(gs: GameState):
             "title": si["title"], "icon": si["emoji"], "text": si["text"],
             "choices": [{"label": "Got it. Keep moving.", "effect": "nothing"}], "cid": None}
         return
-    if random.random() < 0.62:
+    if random.random() < 0.45:
         ev = pick_event(gs)
         if ev:
             gs.pending_event = ev
@@ -1381,7 +1411,9 @@ def tab_portfolio(gs: GameState):
               </div>
             </div>""", unsafe_allow_html=True)
         with cc:
-            if st.button("Sell", key=f"sell_{i}_{gs.quarter_num}"):
+            good_exit = m['moic'] >= 1.4
+            btn_lbl = "Sell" + (" ←" if good_exit else "")
+            if st.button(btn_lbl, key=f"sell_{i}_{gs.quarter_num}", type="primary" if good_exit else "secondary"):
                 sell_idx = i
 
     if sell_idx is not None:
