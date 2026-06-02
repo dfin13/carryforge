@@ -350,8 +350,12 @@ div[data-testid="stTabs"] > div:last-child {
 # ─────────────────────────────────────────────────────────────────────────────
 
 MAX_PORTFOLIO = 4
-DB_PATH = ".claude/carryforge.db"
-os.makedirs(".claude", exist_ok=True)
+# /tmp is writable on Streamlit Cloud; .claude works locally
+DB_PATH = "/tmp/carryforge.db" if os.path.exists("/tmp") else ".claude/carryforge.db"
+try:
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+except Exception:
+    pass
 
 SEASONS = {
     1: {"name":"Bull Run","emoji":"🟢","css":"s1c","exit_mod":1.15,"growth_mod":1.10,
@@ -663,44 +667,56 @@ class GameState:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.execute("""CREATE TABLE IF NOT EXISTS saves (
-        slot INTEGER PRIMARY KEY, data TEXT, ts TEXT, label TEXT)""")
-    conn.commit(); conn.close()
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute("""CREATE TABLE IF NOT EXISTS saves (
+            slot INTEGER PRIMARY KEY, data TEXT, ts TEXT, label TEXT)""")
+        conn.commit(); conn.close()
+    except Exception:
+        pass
 
 def save_game(slot: int, gs: GameState, label: str = ""):
-    conn = sqlite3.connect(DB_PATH)
-    data = json.dumps({
-        **{k: v for k, v in gs.__dict__.items() if not k.startswith("_")},
-        "companies": [c.__dict__ for c in gs.companies],
-        "exited": gs.exited,
-        "deals": [d.__dict__ for d in gs.deals],
-    }, default=str)
-    conn.execute("INSERT OR REPLACE INTO saves VALUES (?,?,?,?)",
-                 (slot, data, datetime.now().isoformat(), label or gs.firm_name))
-    conn.commit(); conn.close()
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        data = json.dumps({
+            **{k: v for k, v in gs.__dict__.items() if not k.startswith("_")},
+            "companies": [c.__dict__ for c in gs.companies],
+            "exited": gs.exited,
+            "deals": [d.__dict__ for d in gs.deals],
+        }, default=str)
+        conn.execute("INSERT OR REPLACE INTO saves VALUES (?,?,?,?)",
+                     (slot, data, datetime.now().isoformat(), label or gs.firm_name))
+        conn.commit(); conn.close()
+    except Exception:
+        pass
 
 def load_game(slot: int) -> Optional[GameState]:
-    conn = sqlite3.connect(DB_PATH)
-    row = conn.execute("SELECT data FROM saves WHERE slot=?", (slot,)).fetchone()
-    conn.close()
-    if not row: return None
-    d = json.loads(row[0])
-    gs = GameState()
-    for k, v in d.items():
-        if k == "companies":
-            gs.companies = [Company(**c) for c in v]
-        elif k == "deals":
-            gs.deals = [Company(**c) for c in v]
-        elif hasattr(gs, k):
-            setattr(gs, k, v)
-    return gs
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        row = conn.execute("SELECT data FROM saves WHERE slot=?", (slot,)).fetchone()
+        conn.close()
+        if not row: return None
+        d = json.loads(row[0])
+        gs = GameState()
+        for k, v in d.items():
+            if k == "companies":
+                gs.companies = [Company(**c) for c in v]
+            elif k == "deals":
+                gs.deals = [Company(**c) for c in v]
+            elif hasattr(gs, k):
+                setattr(gs, k, v)
+        return gs
+    except Exception:
+        return None
 
 def list_saves():
-    conn = sqlite3.connect(DB_PATH)
-    rows = conn.execute("SELECT slot,label,ts FROM saves ORDER BY ts DESC").fetchall()
-    conn.close()
-    return rows
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        rows = conn.execute("SELECT slot,label,ts FROM saves ORDER BY ts DESC").fetchall()
+        conn.close()
+        return rows
+    except Exception:
+        return []
 
 init_db()
 
