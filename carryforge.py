@@ -712,19 +712,21 @@ def tab_deals(gs: GameState):
 
     for i, d in enumerate(gs.deals):
         sec  = SECTORS[d.sector]
-        p3   = proj3(d, gs)
         can  = d.entry_equity <= gs.cash and not full
         lev  = d.entry_debt / max(d.ebitda, 1)
         dot  = SECTOR_DOT_COLOR[d.sector]
-        tier_chip = (f'<span class="chip chip-hot">HOT</span>' if d.tier == "hot"
-                     else f'<span class="chip chip-risk">RISK</span>' if d.tier == "risky" else "")
+        # Qualitative signals — no computed MOIC
+        gr = d.growth
+        mg = d.margin
+        gr_label = "Accelerating" if gr >= 0.18 else ("Growing" if gr >= 0.10 else ("Steady" if gr >= 0.05 else "Mature"))
+        mg_label = "Strong" if mg >= 0.22 else ("Moderate" if mg >= 0.14 else "Thin")
 
         ca, cb, cc = st.columns([3.2, 1.9, 1])
         with ca:
             st.markdown(f"""<div class="card {sec['css']}">
               <div style="display:flex;align-items:center;gap:.45rem;margin-bottom:.35rem">
                 <span class="dot" style="background:{dot};width:10px;height:10px"></span>
-                <h3>{d.name}</h3> {tier_chip}
+                <h3>{d.name}</h3>
               </div>
               <div style="font-size:.75rem;color:#64748b;margin-bottom:.4rem;font-style:italic">
                 "{d.pitch}"</div>
@@ -743,9 +745,9 @@ def tab_deals(gs: GameState):
                 <div class="lbl">Equity</div>
               </div>
               <div style="width:1px;height:32px;background:rgba(255,255,255,.07)"></div>
-              <div style="text-align:center">
-                <div class="num-md {mc(p3)}">{p3:.1f}×</div>
-                <div class="lbl">Est 3yr</div>
+              <div style="text-align:center;max-width:72px">
+                <div style="font-size:.72rem;font-weight:600;color:#94a3b8">{gr_label}</div>
+                <div style="font-size:.68rem;color:#64748b">{mg_label} margin</div>
               </div>
             </div>""", unsafe_allow_html=True)
         with cc:
@@ -811,9 +813,7 @@ def tab_portfolio(gs: GameState):
               </div>
             </div>""", unsafe_allow_html=True)
         with cc:
-            good_exit = m['moic'] >= 1.4
-            btn_lbl = "Sell" + (" ←" if good_exit else "")
-            if st.button(btn_lbl, key=f"sell_{i}_{gs.quarter_num}", type="primary" if good_exit else "secondary"):
+            if st.button("Sell", key=f"sell_{i}_{gs.quarter_num}"):
                 sell_idx = i
 
         # ── Value Creation Levers ────────────────────────────────────────
@@ -827,8 +827,9 @@ def tab_portfolio(gs: GameState):
                        else "expensive" if too_expensive
                        else "")
             cost_str = f" +{cf(lev['cost'])}" if lev["cost"] > 0 else ""
-            sr = int(lev['success_rate']*100)
-            title = f"title=\"{lev['desc']}  |  {sr}% success  |  +{lev['win_moic']*100:.0f}% win / {lev['loss_moic']*100:.0f}% loss\""
+            _sr = lev['success_rate']
+            _risk = "Low risk" if _sr >= 0.75 else ("Balanced" if _sr >= 0.60 else "High risk / high reward")
+            title = f"title=\"{lev['desc']}  |  {_risk}\""
             lever_html += f'<button class="lever-btn {css_cls}" {title}>{lev["short"]}{cost_str}</button>'
         lever_html += '</div>'
         # Last lever outcome
