@@ -18,125 +18,283 @@ st.set_page_config(page_title="CarryForge", page_icon="💼",
                    layout="wide", initial_sidebar_state="collapsed")
 
 # ─────────────────────────────────────────────
-# CSS
+# CSS  — v12 design: Space Grotesk · Neon Vault
 # ─────────────────────────────────────────────
 st.markdown("""
 <style>
-  :root {
-    --bg:#080d1e; --card:#111827; --card2:#1a2235;
-    --green:#10b981; --gold:#f59e0b; --red:#ef4444;
-    --blue:#3b82f6; --purple:#8b5cf6; --pink:#ec4899; --teal:#14b8a6;
-    --border:rgba(255,255,255,0.08); --text:#f1f5f9; --muted:#64748b;
-  }
-  html,body,.stApp{background:var(--bg)!important;color:var(--text);}
-  #MainMenu,footer,header{visibility:hidden;}
-  /* mobile: room for bottom nav */
-  .block-container{padding:.9rem 1rem 5.5rem;max-width:960px;margin:0 auto;}
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700&display=swap');
 
-  /* ── Desktop: full layout, no bottom nav ── */
-  @media (min-width:900px){
-    .block-container{padding:.9rem 2rem 2rem!important;max-width:1280px!important;}
-    #_cf_nav{display:none!important;}          /* hide bottom nav on desktop */
-    .mobile-hint{display:none!important;}
-  }
-  /* ── Mobile: focused single section ── */
-  @media (max-width:899px){
-    .desktop-section{display:none!important;}  /* show only active section */
-    .desktop-section.cf-active{display:block!important;}
-  }
+:root {
+  /* surfaces */
+  --bg:   #060810;
+  --s1:   #0c1020;
+  --s2:   #121828;
+  --s3:   #1a2235;
+  /* accents */
+  --lime: #4ade80;
+  --gold: #fbbf24;
+  --red:  #f87171;
+  --blue: #60a5fa;
+  --pur:  #a78bfa;
+  --pink: #f472b6;
+  --teal: #34d399;
+  /* meta */
+  --border:     rgba(255,255,255,.055);
+  --border-lit: rgba(255,255,255,.13);
+  --text:  #e2e8f0;
+  --muted: #64748b;
+  --dim:   #374151;
+  /* sector gradients (bg overlays) */
+  --saas-glow:   rgba(96,165,250,.08);
+  --hw-glow:     rgba(167,139,250,.08);
+  --health-glow: rgba(244,114,182,.08);
+  --fin-glow:    rgba(52,211,153,.08);
+}
 
-  h1{font-size:1.6rem;font-weight:800;margin:0;}
-  h2{font-size:1.1rem;font-weight:700;margin:.75rem 0 .4rem;}
-  h3{font-size:.92rem;font-weight:600;margin:0;}
+*, *::before, *::after {
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
 
-  /* hide the tab-bus input */
-  div[data-testid="stTextInput"]{display:none!important;}
+html,body,.stApp { background: var(--bg) !important; color: var(--text); }
+#MainMenu,footer,header { visibility:hidden; }
 
-  .stButton>button{
-    background:linear-gradient(135deg,var(--green),#059669);
-    color:#fff!important;border:none!important;border-radius:10px;
-    font-weight:700;font-size:.88rem;padding:.6rem 1rem;width:100%;
-    transition:transform .15s,box-shadow .15s;
-    box-shadow:0 4px 12px rgba(16,185,129,.22);
-  }
-  .stButton>button:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(16,185,129,.38);}
-  .stButton>button:disabled{background:#1e293b!important;color:#475569!important;
-    box-shadow:none!important;transform:none!important;}
+/* layout */
+.block-container { padding:.85rem 1.1rem 5.5rem; max-width:980px; margin:0 auto; }
+@media (min-width:900px){
+  .block-container { padding:1.25rem 2.5rem 2.5rem !important; max-width:1340px !important; }
+  #_cf_nav { display:none !important; }
+}
+@media (max-width:899px){
+  .desktop-section          { display:none !important; }
+  .desktop-section.cf-active{ display:block !important; }
+}
 
-  hr{border-color:var(--border);margin:.6rem 0;}
+div[data-testid="stTextInput"] { display:none !important; }
 
-  .stat{text-align:center;}
-  .stat-val{font-size:1.2rem;font-weight:800;color:var(--text);line-height:1.2;}
-  .stat-lbl{font-size:.6rem;font-weight:600;color:var(--muted);text-transform:uppercase;
-             letter-spacing:.07em;margin-top:.1rem;}
+/* ── typography ── */
+h1 { font-size:1.55rem; font-weight:800; margin:0; letter-spacing:-.02em; }
+h2 { font-size:1.05rem; font-weight:700; margin:.9rem 0 .45rem; letter-spacing:-.01em; }
+h3 { font-size:.92rem;  font-weight:700; margin:0; }
+hr { border-color: var(--border); margin:.75rem 0; }
 
-  .dcard{background:var(--card);border:1px solid var(--border);
-         border-left:3px solid transparent;border-radius:12px;
-         padding:.8rem .95rem;margin-bottom:.4rem;}
-  .dcard-SaaS{border-left-color:var(--blue);}
-  .dcard-Hardware{border-left-color:var(--purple);}
-  .dcard-Healthcare{border-left-color:var(--pink);}
-  .dcard-Fintech{border-left-color:var(--teal);}
+/* ── primary button ── */
+.stButton > button {
+  background: linear-gradient(135deg, var(--lime), #22c55e) !important;
+  color: #052e16 !important;
+  border: none !important;
+  border-radius: 999px;
+  font-weight: 800 !important;
+  font-size: .85rem !important;
+  letter-spacing: .01em;
+  padding: .6rem 1.4rem !important;
+  width: 100%;
+  transition: transform .12s, box-shadow .12s, opacity .12s;
+  box-shadow: 0 0 0 0 rgba(74,222,128,0);
+  position: relative; overflow: hidden;
+}
+.stButton > button::after {
+  content:''; position:absolute; top:0; left:-75%;
+  width:50%; height:100%;
+  background: linear-gradient(90deg,transparent,rgba(255,255,255,.28),transparent);
+  transition: left .5s ease;
+}
+.stButton > button:hover { transform:translateY(-2px); box-shadow:0 4px 22px rgba(74,222,128,.35); }
+.stButton > button:hover::after { left:140%; }
+.stButton > button:disabled {
+  background: var(--s2) !important;
+  color: var(--muted) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
 
-  .tag{display:inline-block;background:var(--card2);border:1px solid var(--border);
-       border-radius:5px;padding:.15rem .42rem;font-size:.7rem;font-weight:600;
-       color:var(--muted);margin:2px;}
-  .tag span{color:var(--text);}
-  .tag-hot{background:rgba(245,158,11,.12);border-color:var(--gold);color:var(--gold);}
-  .tag-risky{background:rgba(239,68,68,.1);border-color:var(--red);color:var(--red);}
+/* ── choice buttons (event options) ── */
+.choice-btn > div > div > button {
+  background: var(--s2) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border-lit) !important;
+  border-radius: 14px !important;
+  box-shadow: none !important;
+  font-weight: 600 !important;
+  text-align: left !important;
+}
+.choice-btn > div > div > button:hover {
+  border-color: var(--lime) !important;
+  color: var(--lime) !important;
+  transform: none !important;
+}
 
-  .path-chip{border-radius:7px;padding:.28rem .6rem;font-size:.7rem;font-weight:700;
-             border:1px solid;display:inline-block;margin:2px;}
-  .path-hit{background:rgba(16,185,129,.12);border-color:var(--green);color:var(--green);}
-  .path-miss{background:var(--card2);border-color:var(--border);color:var(--muted);}
-  .path-ahead{background:rgba(16,185,129,.07);border-color:rgba(16,185,129,.3);color:#6ee7b7;}
-  .path-behind{background:rgba(239,68,68,.07);border-color:rgba(239,68,68,.3);color:#fca5a5;}
+/* ── stat block ── */
+.num {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -.03em;
+  font-feature-settings: "tnum";
+}
+.num-sm {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 1.2rem;
+  font-weight: 700;
+  font-feature-settings: "tnum";
+}
+.lbl {
+  font-size: .62rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-top: .2rem;
+}
 
-  .lp-wrap{display:flex;align-items:center;gap:.5rem;margin:.35rem 0;}
-  .lp-track{flex:1;height:14px;background:var(--card2);border-radius:999px;overflow:hidden;}
-  .lp-fill{height:14px;border-radius:999px;transition:width .4s ease;}
+/* ── pill / stat card ── */
+.pill-card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+  text-align: center;
+}
 
-  .ev-card{background:var(--card);border:1px solid;border-radius:14px;
-           padding:1rem 1.1rem;margin:.4rem 0;}
-  .ev-crisis{border-color:#ef4444;background:rgba(239,68,68,.06);}
-  .ev-opportunity{border-color:#10b981;background:rgba(16,185,129,.06);}
-  .ev-rival{border-color:#8b5cf6;background:rgba(139,92,246,.06);}
-  .ev-lp{border-color:#f59e0b;background:rgba(245,158,11,.06);}
-  .ev-season{border-color:#3b82f6;background:rgba(59,130,246,.08);}
+/* ── deal / portfolio card ── */
+.card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1rem 1.1rem;
+  margin-bottom: .5rem;
+  transition: border-color .2s;
+}
+.card:hover { border-color: var(--border-lit); }
+.card-saas   { background: linear-gradient(135deg,var(--saas-glow),var(--s1)  80%); }
+.card-hw     { background: linear-gradient(135deg,var(--hw-glow),  var(--s1)  80%); }
+.card-health { background: linear-gradient(135deg,var(--health-glow),var(--s1) 80%); }
+.card-fin    { background: linear-gradient(135deg,var(--fin-glow),  var(--s1)  80%); }
 
-  .choice-btn button{
-    background:var(--card2)!important;border:1px solid var(--border)!important;
-    color:var(--text)!important;box-shadow:none!important;
-  }
-  .choice-btn button:hover{border-color:var(--green)!important;color:var(--green)!important;
-    transform:none!important;}
+.sector-dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: middle;
+}
 
-  .score-box{background:var(--card);border:1px solid var(--border);border-radius:18px;
-             padding:1.6rem;text-align:center;max-width:480px;margin:.8rem auto;}
-  .unlock-card{background:var(--card);border:1px solid rgba(245,158,11,.35);
-               border-radius:14px;padding:1rem;margin:.5rem 0;text-align:center;}
-  .path-result-hit{background:rgba(16,185,129,.12);border:1px solid var(--green);
-               border-radius:10px;padding:.5rem .85rem;margin:.22rem 0;}
-  .path-result-miss{background:var(--card2);border:1px solid var(--border);
-               border-radius:10px;padding:.5rem .85rem;margin:.22rem 0;opacity:.5;}
+/* ── chip / tag ── */
+.chip {
+  display: inline-block;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: .2rem .65rem;
+  font-size: .7rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin: 2px;
+}
+.chip b { color: var(--text); font-weight: 700; }
+.chip-hot   { border-color: var(--gold); color: var(--gold); background: rgba(251,191,36,.08); }
+.chip-risky { border-color: var(--red);  color: var(--red);  background: rgba(248,113,113,.08); }
 
-  .s1{color:#10b981;font-weight:700;} .s2{color:#f59e0b;font-weight:700;} .s3{color:#ef4444;font-weight:700;}
-  .hint{background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);
-        border-radius:10px;padding:.6rem .85rem;font-size:.83rem;color:#93c5fd;margin:.45rem 0;}
-  .log-line{padding:.38rem .75rem;background:var(--card2);border-radius:8px;
-            font-size:.79rem;color:var(--muted);margin:.18rem 0;}
+/* ── path chips ── */
+.path-pill {
+  display: inline-flex; align-items: center; gap: .3rem;
+  border-radius: 999px; padding: .28rem .75rem;
+  font-size: .72rem; font-weight: 700;
+  border: 1px solid; margin: 2px;
+}
+.pp-hit    { background:rgba(74,222,128,.12); border-color:var(--lime); color:var(--lime); }
+.pp-miss   { background:var(--s2);           border-color:var(--border); color:var(--muted); }
+.pp-ahead  { background:rgba(74,222,128,.07); border-color:rgba(74,222,128,.3); color:#86efac; }
+.pp-behind { background:rgba(248,113,113,.07);border-color:rgba(248,113,113,.3);color:#fca5a5; }
 
-  .c-green{color:var(--green)!important;font-weight:700;}
-  .c-gold{color:var(--gold)!important;font-weight:700;}
-  .c-red{color:var(--red)!important;font-weight:700;}
-  .c-muted{color:var(--muted)!important;}
-  .fw7{font-weight:700;}
+/* ── LP bar ── */
+.lp-row { display:flex; align-items:center; gap:.6rem; margin:.4rem 0; }
+.lp-track {
+  flex:1; height:10px;
+  background: linear-gradient(90deg,rgba(74,222,128,.15) 0%,rgba(251,191,36,.15) 50%,rgba(248,113,113,.15) 100%);
+  border-radius:999px; overflow:hidden; position:relative;
+}
+.lp-fill { height:10px; border-radius:999px; transition:width .5s ease; }
 
-  @media(max-width:640px){
-    .block-container{padding:.65rem .65rem 5.5rem;}
-    .stat-val{font-size:1rem;}
-    h1{font-size:1.3rem;}
-  }
+/* ── event cards ── */
+.ev {
+  border-radius: 20px;
+  padding: 1.25rem 1.4rem;
+  margin: .5rem 0;
+  border: 1px solid;
+}
+.ev-crisis      { background:rgba(248,113,113,.07); border-color:rgba(248,113,113,.3); }
+.ev-opportunity { background:rgba(74,222,128,.07);  border-color:rgba(74,222,128,.3);  }
+.ev-rival       { background:rgba(167,139,250,.07); border-color:rgba(167,139,250,.3); }
+.ev-lp          { background:rgba(251,191,36,.07);  border-color:rgba(251,191,36,.3);  }
+.ev-season      { background:rgba(96,165,250,.07);  border-color:rgba(96,165,250,.3);  }
+
+/* ── score / unlock cards ── */
+.score-card {
+  background: linear-gradient(135deg,var(--s2),var(--s1));
+  border: 1px solid var(--border-lit);
+  border-radius: 24px;
+  padding: 2rem 1.75rem;
+  text-align: center;
+  max-width: 520px;
+  margin: .75rem auto;
+}
+.unlock-card {
+  background: linear-gradient(135deg,rgba(251,191,36,.08),var(--s1));
+  border: 1px solid rgba(251,191,36,.25);
+  border-radius: 18px;
+  padding: 1.1rem;
+  text-align: center;
+  margin: .5rem 0;
+}
+.path-row-hit  { background:rgba(74,222,128,.08); border:1px solid rgba(74,222,128,.3);
+                 border-radius:12px; padding:.55rem 1rem; margin:.25rem 0; }
+.path-row-miss { background:var(--s2); border:1px solid var(--border);
+                 border-radius:12px; padding:.55rem 1rem; margin:.25rem 0; opacity:.5; }
+
+/* ── season labels ── */
+.s1c { color:#4ade80; font-weight:700; }
+.s2c { color:#fbbf24; font-weight:700; }
+.s3c { color:#f87171; font-weight:700; }
+
+/* ── hint box ── */
+.hint {
+  background: rgba(96,165,250,.07);
+  border: 1px solid rgba(96,165,250,.22);
+  border-radius: 14px;
+  padding: .7rem 1rem;
+  font-size: .84rem;
+  color: #93c5fd;
+  margin: .5rem 0;
+}
+
+/* ── log line ── */
+.log { padding:.4rem .85rem; background:var(--s2); border-radius:10px;
+       font-size:.79rem; color:var(--muted); margin:.2rem 0; }
+
+/* ── color helpers ── */
+.g  { color:var(--lime) !important; font-weight:700; }
+.go { color:var(--gold) !important; font-weight:700; }
+.r  { color:var(--red)  !important; font-weight:700; }
+.mu { color:var(--muted)!important; }
+.b7 { font-weight:700; }
+
+/* ── section divider ── */
+.sec-head {
+  display: flex; align-items: center; gap: .6rem;
+  margin: 1.25rem 0 .6rem;
+}
+.sec-head-line {
+  flex:1; height:1px;
+  background: linear-gradient(90deg,var(--border),transparent);
+}
+
+@media(max-width:640px){
+  .block-container{padding:.7rem .7rem 5.5rem;}
+  .num{font-size:1.4rem;}
+  h1{font-size:1.3rem;}
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -467,10 +625,13 @@ def get_tab() -> str:
 # ─────────────────────────────────────────────
 # HELPERS
 # ─────────────────────────────────────────────
-def mc(v): return "c-green" if v>=2.0 else "c-gold" if v>=1.3 else "c-red"
-def cf(v): return f"${v/1e9:.2f}B" if abs(v)>=1e9 else f"${v/1e6:.1f}M"
-def lpc(s): return "#10b981" if s>=60 else "#f59e0b" if s>=35 else "#ef4444"
+def mc(v):   return "g"  if v>=2.0 else "go" if v>=1.3 else "r"
+def cf(v):   return f"${v/1e9:.2f}B" if abs(v)>=1e9 else f"${v/1e6:.1f}M"
+def lpc(s):  return "#4ade80" if s>=60 else "#fbbf24" if s>=35 else "#f87171"
 def hdot(m): return "🟢" if m>=1.10 else ("🔴" if m<=0.85 else "🟡")
+
+SECTOR_CSS = {"SaaS":"card-saas","Hardware":"card-hw","Healthcare":"card-health","Fintech":"card-fin"}
+SECTOR_DOT = {"SaaS":"#60a5fa","Hardware":"#a78bfa","Healthcare":"#f472b6","Fintech":"#34d399"}
 
 # ─────────────────────────────────────────────
 # SOUND + BOTTOM NAV
@@ -605,10 +766,11 @@ def inject_bottom_nav(active_tab:str, has_event:bool=False):
       var nav = window.parent.document.createElement('div');
       nav.id = '_cf_nav';
       nav.setAttribute('data-active', active);
-      nav.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#0d1223;'
-        + 'border-top:1px solid rgba(255,255,255,.1);display:flex;z-index:99999;'
-        + 'padding:6px 0 max(8px,env(safe-area-inset-bottom));'
-        + 'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;';
+      nav.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#060810;'
+        + 'border-top:1px solid rgba(255,255,255,.08);display:flex;z-index:99999;'
+        + 'padding:8px 0 max(10px,env(safe-area-inset-bottom));'
+        + 'font-family:"Space Grotesk",-apple-system,BlinkMacSystemFont,sans-serif;'
+        + 'backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);';
 
       TABS.forEach(function(tab) {{
         var key=tab[0], icon=tab[1], label=tab[2], isActive=(key===active);
@@ -617,9 +779,9 @@ def inject_bottom_nav(active_tab:str, has_event:bool=False):
           + icon + (key==='events'&&hasBadge?'<sup style="font-size:.5rem;color:#ef4444">●</sup>':'')
           + '</span><span style="font-size:.58rem;display:block;margin-top:2px;font-weight:'
           + (isActive?'700':'500') + ';">' + label + '</span>';
-        item.style.cssText = 'flex:1;background:none;border:none;cursor:pointer;padding:4px 2px;'
-          + 'color:' + (isActive?'#10b981':'#64748b') + ';outline:none;'
-          + '-webkit-tap-highlight-color:transparent;transition:color .2s;';
+        item.style.cssText = 'flex:1;background:none;border:none;cursor:pointer;padding:6px 2px;'
+          + 'color:' + (isActive?'#4ade80':'#64748b') + ';outline:none;'
+          + '-webkit-tap-highlight-color:transparent;transition:color .18s;';
         item.addEventListener('click', function() {{
           scrollTo(key);
           setParentInput(key);
@@ -639,94 +801,115 @@ def inject_bottom_nav(active_tab:str, has_event:bool=False):
 # SHARED HEADER (always shown in game)
 # ─────────────────────────────────────────────
 def render_header(gs:GameState):
-    si = gs.season_info
-    bm = blended_moic(gs)
-    fn = gs.fund_number
-    fl = f"Fund {'I' if fn==1 else 'II' if fn==2 else 'III'}"
-    qtrs_l = gs.total_quarters - gs.quarter_num
+    si  = gs.season_info
+    bm  = blended_moic(gs)
+    fn  = gs.fund_number
+    fl  = f"Fund {'I' if fn==1 else 'II' if fn==2 else 'III'}"
+    qtl = gs.total_quarters - gs.quarter_num
+    sc  = {"s1":"s1c","s2":"s2c","s3":"s3c"}[si["css"]]
 
-    c1, c2, c3, c4 = st.columns([2.5, 1.1, 1.1, 1.6])
+    c1, c2, c3, c4 = st.columns([3, 1.1, 1.2, 1.5])
     with c1:
-        st.markdown(f"<h1>{gs.firm_name} <span style='font-size:.85rem;color:var(--muted);font-weight:400'>· {fl}</span></h1>",
-                    unsafe_allow_html=True)
+        st.markdown(
+            f"<h1 style='letter-spacing:-.025em'>{gs.firm_name}"
+            f"<span style='font-size:.78rem;color:var(--muted);font-weight:500;margin-left:.5rem'>· {fl}</span></h1>",
+            unsafe_allow_html=True)
     with c2:
-        st.markdown(f"""<div class="stat"><div class="stat-val">{cf(gs.cash)}</div>
-          <div class="stat-lbl">Cash</div></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div style="text-align:center">
+          <div class="num-sm">{cf(gs.cash)}</div>
+          <div class="lbl">Cash</div></div>""", unsafe_allow_html=True)
     with c3:
-        st.markdown(f"""<div class="stat">
-          <div class="stat-val"><span class="{si['css']}">{si['emoji']}</span> {gs.year} Q{gs.quarter}</div>
-          <div class="stat-lbl">{si['name']}</div></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div style="text-align:center">
+          <div class="num-sm"><span class="{sc}">{si['emoji']}</span> {gs.year} Q{gs.quarter}</div>
+          <div class="lbl">{si['name']}</div></div>""", unsafe_allow_html=True)
     with c4:
-        if st.button(f"⏭ Next Q ({qtrs_l})", key="nq"):
+        if st.button(f"⏭  Next Quarter  ({qtl})", key="nq"):
             advance_quarter(gs); st.rerun()
 
+    # LP bar
     lp_c = lpc(gs.lp_satisfaction)
-    lp_em = "😊" if gs.lp_satisfaction>=70 else ("😐" if gs.lp_satisfaction>=45 else "😡")
+    lp_w = gs.lp_satisfaction
+    lp_em = "😊" if lp_w>=70 else ("😐" if lp_w>=45 else "😡")
     st.markdown(f"""
-    <div class="lp-wrap">
-      <span style="font-size:.68rem;color:var(--muted);white-space:nowrap;">{lp_em} LPs</span>
-      <div class="lp-track"><div class="lp-fill" style="width:{gs.lp_satisfaction}%;background:{lp_c};"></div></div>
-      <span style="font-size:.7rem;color:{lp_c};font-weight:700;">{gs.lp_satisfaction}/100</span>
+    <div class="lp-row">
+      <span style="font-size:.68rem;color:var(--muted);white-space:nowrap">{lp_em} LPs</span>
+      <div class="lp-track">
+        <div class="lp-fill" style="width:{lp_w}%;background:{lp_c};box-shadow:0 0 8px {lp_c}55;"></div>
+      </div>
+      <span style="font-size:.7rem;color:{lp_c};font-weight:700;">{lp_w}/100</span>
     </div>""", unsafe_allow_html=True)
 
-    if gs.lp_satisfaction < 35:   st.error("🚨 LPs threatening to pull. Exit something now.")
-    elif gs.lp_satisfaction < 50: st.warning("⚠️ LPs getting restless.")
+    if lp_w < 35:   st.error("🚨 LPs threatening to pull out. Exit something now.")
+    elif lp_w < 50: st.warning("⚠️ LPs getting restless. They want returns.")
 
+    # Path pills
     paths = check_paths(gs)
-    chips = []
+    pills = []
     for p in paths.values():
-        if p["hit"]: cls = "path-hit"
-        elif p["pace"] == "ahead": cls = "path-ahead"
-        elif p["pace"] == "behind": cls = "path-behind"
-        else: cls = "path-miss"
-        tick = "✅" if p["hit"] else ("📈" if p["pace"]=="ahead" else "⚠️")
-        chips.append(f'<span class="path-chip {cls}">{tick} {p["label"]}: {p["actual"]}/{p["target"]}</span>')
-    st.markdown(" ".join(chips), unsafe_allow_html=True)
+        if p["hit"]:              css = "pp-hit"
+        elif p["pace"]=="ahead":  css = "pp-ahead"
+        elif p["pace"]=="behind": css = "pp-behind"
+        else:                     css = "pp-miss"
+        icon = "✓" if p["hit"] else ("↑" if p["pace"]=="ahead" else "↓")
+        pills.append(f'<span class="path-pill {css}">{icon} {p["label"]} {p["actual"]}/{p["target"]}</span>')
+    st.markdown("<div style='margin:.35rem 0'>" + " ".join(pills) + "</div>", unsafe_allow_html=True)
 
     if gs.event_log:
-        st.markdown(f'<div class="log-line">{gs.event_log[0]}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="log">{gs.event_log[0]}</div>', unsafe_allow_html=True)
+    st.markdown("<hr>", unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────
 # TAB: HOME
 # ─────────────────────────────────────────────
 def tab_home(gs:GameState):
-    st.markdown("<hr>", unsafe_allow_html=True)
-    bm = blended_moic(gs)
+    bm    = blended_moic(gs)
     paths = check_paths(gs)
     n_hit = sum(1 for p in paths.values() if p["hit"])
+    realized = sum(e["proc"] for e in gs.exited)
+    moic_col = mc(bm)
 
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.markdown(f"""<div class="stat" style="background:var(--card);border-radius:12px;padding:.9rem;">
-          <div class="stat-val {mc(bm)}">{bm:.2f}×</div>
-          <div class="stat-lbl">Blended MOIC</div></div>""", unsafe_allow_html=True)
-    with c2:
-        st.markdown(f"""<div class="stat" style="background:var(--card);border-radius:12px;padding:.9rem;">
-          <div class="stat-val">{len(gs.exited)}</div>
-          <div class="stat-lbl">Exits</div></div>""", unsafe_allow_html=True)
-    with c3:
-        st.markdown(f"""<div class="stat" style="background:var(--card);border-radius:12px;padding:.9rem;">
-          <div class="stat-val" style="color:{'#10b981' if n_hit>0 else '#64748b'};">{n_hit}/3</div>
-          <div class="stat-lbl">Paths Hit</div></div>""", unsafe_allow_html=True)
+    # big 3 numbers
+    c1, c2, c3, c4 = st.columns(4)
+    for col, val, lbl, col_cls in [
+        (c1, f"{bm:.2f}×",           "Portfolio MOIC",  moic_col),
+        (c2, cf(gs.cash),             "Cash Available",  ""),
+        (c3, str(len(gs.exited)),     "Companies Exited",""),
+        (c4, f"{n_hit}/3",            "Paths Hit",       "g" if n_hit>0 else "mu"),
+    ]:
+        with col:
+            st.markdown(f"""<div class="pill-card">
+              <div class="num {col_cls}">{val}</div>
+              <div class="lbl">{lbl}</div></div>""", unsafe_allow_html=True)
 
     if not gs.companies and gs.quarter_num == 0:
-        st.markdown("""<div class="hint">👋 <strong>Welcome!</strong> Go to <strong>Deals</strong> tab to buy your first company.
-          Hit <strong>Next Q</strong> to advance time. Sell when returns look good.</div>""", unsafe_allow_html=True)
+        st.markdown("""<div class="hint" style="margin-top:.75rem">
+          👋 <strong>Head to Deals</strong> to buy your first company.
+          Hit <strong>Next Quarter</strong> to grow it. Sell when the return looks good.</div>""",
+          unsafe_allow_html=True)
 
     if gs.companies:
-        st.markdown("<h2>📊 Portfolio Summary</h2>", unsafe_allow_html=True)
+        st.markdown("""<div class="sec-head">
+          <span style="font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Portfolio</span>
+          <div class="sec-head-line"></div></div>""", unsafe_allow_html=True)
         for c in gs.companies:
-            m = calc(c, gs)
+            m   = calc(c, gs)
             sec = SECTORS[c.sector]
-            yh = m["yh"]; age = f"{yh:.1f}y" if yh>=1 else f"{int(round(yh*4))}q"
+            yh  = m["yh"]; age = f"{yh:.1f}y" if yh>=1 else f"{int(round(yh*4))}q"
+            dot = SECTOR_DOT[c.sector]
             st.markdown(f"""
             <div style="display:flex;justify-content:space-between;align-items:center;
-                 padding:.5rem .85rem;background:var(--card);border-radius:9px;margin-bottom:.28rem;">
-              <span>{sec['emoji']} <strong>{c.name}</strong>
-                <span class="c-muted" style="font-size:.7rem;"> · {age}</span></span>
-              <span class="{mc(m['moic'])}">{m['moic']:.2f}×</span>
-              <span class="c-muted">{m['irr']*100:.0f}% IRR</span>
+                 padding:.6rem 1rem;background:var(--s1);border:1px solid var(--border);
+                 border-radius:14px;margin-bottom:.35rem;">
+              <span>
+                <span class="sector-dot" style="background:{dot}"></span>
+                <strong>{c.name}</strong>
+                <span class="mu" style="font-size:.72rem"> · {c.sector} · {age}</span>
+              </span>
+              <div style="display:flex;gap:1.2rem;align-items:center">
+                <span class="num-sm {mc(m['moic'])}">{m['moic']:.2f}×</span>
+                <span class="mu" style="font-size:.78rem">{m['irr']*100:.0f}% IRR</span>
+              </div>
             </div>""", unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
@@ -734,37 +917,50 @@ def tab_home(gs:GameState):
 # ─────────────────────────────────────────────
 def tab_deals(gs:GameState):
     full = len(gs.companies) >= MAX_PORTFOLIO
-    st.markdown("<hr>", unsafe_allow_html=True)
-    st.markdown(f"<h2>🎯 Deal Flow</h2>" +
-                (" <span style='font-size:.78rem;color:var(--red)'>Portfolio full — sell first</span>" if full else ""),
-                unsafe_allow_html=True)
+
+    st.markdown(f"""<div class="sec-head">
+      <span style="font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Deal Flow</span>
+      {"<span style='font-size:.75rem;color:var(--red);font-weight:600'>· Portfolio full — sell first</span>" if full else ""}
+      <div class="sec-head-line"></div></div>""", unsafe_allow_html=True)
+
     buy_idx = None
     for i, d in enumerate(gs.deals):
         sec = SECTORS[d.sector]
-        p3 = proj3(d, gs)
+        p3  = proj3(d, gs)
         can = d.entry_equity <= gs.cash and not full
-        tier_tag = '<span class="tag tag-hot">🔥 Hot</span>' if d.tier=="hot" else \
-                   ('<span class="tag tag-risky">⚠ Risky</span>' if d.tier=="risky" else "")
         lev = d.entry_debt / max(d.ebitda, 1)
+        ccss = SECTOR_CSS[d.sector]
+        dot  = SECTOR_DOT[d.sector]
+        tier_chip = f'<span class="chip chip-hot">🔥 Hot</span>' if d.tier=="hot" else \
+                    (f'<span class="chip chip-risky">⚠ Risk</span>' if d.tier=="risky" else "")
 
-        ca, cb, cc = st.columns([3, 1.6, 1])
+        ca, cb, cc = st.columns([3.2, 1.8, 1])
         with ca:
-            st.markdown(f"""<div class="dcard dcard-{d.sector}">
-              <h3>{sec['emoji']} {d.name} {tier_tag}</h3>
-              <span class="c-muted" style="font-size:.7rem;">CEO: {d.ceo}</span><br>
-              <span class="tag">{d.sector}</span>
-              <span class="tag">In: <span>{d.entry_multiple:.1f}×</span></span>
-              <span class="tag">Growth: <span>{d.growth*100:.0f}%</span></span>
-              <span class="tag">Margin: <span>{d.margin*100:.0f}%</span></span>
-              <span class="tag">Lev: <span>{lev:.1f}×</span></span>
+            st.markdown(f"""<div class="card {ccss}">
+              <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem">
+                <span class="sector-dot" style="background:{dot};width:10px;height:10px"></span>
+                <h3>{d.name}</h3>
+                {tier_chip}
+              </div>
+              <div style="font-size:.74rem;color:var(--muted);margin-bottom:.45rem">CEO: {d.ceo}</div>
+              <span class="chip">{d.sector}</span>
+              <span class="chip">Enter <b>{d.entry_multiple:.1f}×</b></span>
+              <span class="chip">Growth <b>{d.growth*100:.0f}%</b></span>
+              <span class="chip">Margin <b>{d.margin*100:.0f}%</b></span>
+              <span class="chip">Lev <b>{lev:.1f}×</b></span>
             </div>""", unsafe_allow_html=True)
         with cb:
             st.markdown(f"""
-            <div style="display:flex;gap:.5rem;align-items:center;height:100%;padding:.35rem 0;">
-              <div class="stat"><div class="stat-val">{cf(d.entry_equity)}</div>
-                <div class="stat-lbl">Equity</div></div>
-              <div class="stat"><div class="stat-val {mc(p3)}">{p3:.1f}×</div>
-                <div class="stat-lbl">Est 3yr</div></div>
+            <div style="display:flex;gap:.6rem;align-items:center;height:100%;padding:.4rem 0">
+              <div style="text-align:center">
+                <div class="num-sm">{cf(d.entry_equity)}</div>
+                <div class="lbl">Equity Cost</div>
+              </div>
+              <div style="width:1px;height:32px;background:var(--border)"></div>
+              <div style="text-align:center">
+                <div class="num-sm {mc(p3)}">{p3:.1f}×</div>
+                <div class="lbl">Est 3yr</div>
+              </div>
             </div>""", unsafe_allow_html=True)
         with cc:
             lbl = "Buy" if can else ("Full" if full else "💸")
@@ -784,46 +980,56 @@ def tab_deals(gs:GameState):
 # TAB: PORTFOLIO
 # ─────────────────────────────────────────────
 def tab_portfolio(gs:GameState):
-    full = len(gs.companies) >= MAX_PORTFOLIO
-    st.markdown("<hr>", unsafe_allow_html=True)
-    st.markdown(f"<h2>📊 Portfolio ({len(gs.companies)}/{MAX_PORTFOLIO})</h2>", unsafe_allow_html=True)
+    st.markdown(f"""<div class="sec-head">
+      <span style="font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">
+        Portfolio ({len(gs.companies)}/{MAX_PORTFOLIO})</span>
+      <div class="sec-head-line"></div></div>""", unsafe_allow_html=True)
 
     if not gs.companies:
-        st.info("No portfolio companies yet — go to Deals to invest.")
+        st.markdown('<div class="hint">No holdings yet — go to Deals to invest.</div>', unsafe_allow_html=True)
         return
 
     sell_idx = None
     for i, c in enumerate(gs.companies):
-        m = calc(c, gs)
-        sec = SECTORS[c.sector]
-        yh = m["yh"]; age = f"{yh:.1f}y" if yh>=1 else f"{int(round(yh*4))}q"
-        hd = hdot(c.moic_modifier)
-        dmg = ' <span style="color:var(--red);font-size:.7rem;"> ⚠ hit</span>' if c.moic_modifier<0.85 else ""
-        bst = ' <span style="color:var(--green);font-size:.7rem;"> ✨ boosted</span>' if c.moic_modifier>1.15 else ""
+        m    = calc(c, gs)
+        sec  = SECTORS[c.sector]
+        yh   = m["yh"]; age = f"{yh:.1f}y" if yh>=1 else f"{int(round(yh*4))}q"
+        ccss = SECTOR_CSS[c.sector]
+        dot  = SECTOR_DOT[c.sector]
+        status = (' <span style="color:var(--red);font-size:.72rem">⚠ damaged</span>' if c.moic_modifier<0.85
+                  else (' <span style="color:var(--lime);font-size:.72rem">✨ boosted</span>' if c.moic_modifier>1.15 else ""))
 
-        ca, cb, cc = st.columns([3, 1.6, 1])
+        ca, cb, cc = st.columns([3.2, 1.8, 1])
         with ca:
-            st.markdown(f"""<div class="dcard dcard-{c.sector}">
-              <span class="fw7">{sec['emoji']} {c.name}</span>
-              <span class="c-muted" style="font-size:.7rem;margin-left:.3rem;">
-                {hd} {c.sector} · {c.ceo} · {age}</span>{dmg}{bst}<br>
-              <span class="tag">{cf(m['revenue'])} rev</span>
-              <span class="tag">Lev: <span>{m['debt']/max(m['ebitda'],1):.1f}×</span></span>
+            st.markdown(f"""<div class="card {ccss}">
+              <div style="display:flex;align-items:center;gap:.45rem;margin-bottom:.3rem">
+                <span class="sector-dot" style="background:{dot};width:10px;height:10px"></span>
+                <span style="font-weight:700">{c.name}</span>
+                <span style="font-size:.72rem;color:var(--muted)">{c.sector} · {c.ceo} · {age}</span>
+                {status}
+              </div>
+              <span class="chip">{cf(m['revenue'])} rev</span>
+              <span class="chip">Lev <b>{m['debt']/max(m['ebitda'],1):.1f}×</b></span>
             </div>""", unsafe_allow_html=True)
         with cb:
             st.markdown(f"""
-            <div style="display:flex;gap:.5rem;align-items:center;height:100%;padding:.35rem 0;">
-              <div class="stat"><div class="stat-val {mc(m['moic'])}">{m['moic']:.2f}×</div>
-                <div class="stat-lbl">MOIC</div></div>
-              <div class="stat"><div class="stat-val">{m['irr']*100:.0f}%</div>
-                <div class="stat-lbl">IRR</div></div>
+            <div style="display:flex;gap:.6rem;align-items:center;height:100%;padding:.4rem 0">
+              <div style="text-align:center">
+                <div class="num-sm {mc(m['moic'])}">{m['moic']:.2f}×</div>
+                <div class="lbl">MOIC</div>
+              </div>
+              <div style="width:1px;height:32px;background:var(--border)"></div>
+              <div style="text-align:center">
+                <div class="num-sm">{m['irr']*100:.0f}%</div>
+                <div class="lbl">IRR</div>
+              </div>
             </div>""", unsafe_allow_html=True)
         with cc:
             if st.button("Sell", key=f"sell_{i}_{gs.quarter_num}"):
                 sell_idx = i
 
     if sell_idx is not None:
-        m = calc(gs.companies[sell_idx], gs)
+        m     = calc(gs.companies[sell_idx], gs)
         cname = gs.companies[sell_idx].name
         sell_company(gs, sell_idx)
         gs.sound_queue.append("SELL_GREAT" if m["moic"]>=2.0 else ("SELL_OK" if m["moic"]>=1.3 else "SELL_BAD"))
@@ -835,77 +1041,98 @@ def tab_portfolio(gs:GameState):
 # TAB: EVENTS
 # ─────────────────────────────────────────────
 def tab_events(gs:GameState):
-    st.markdown("<hr>", unsafe_allow_html=True)
-    st.markdown("<h2>📣 Events & History</h2>", unsafe_allow_html=True)
+    st.markdown("""<div class="sec-head">
+      <span style="font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Events</span>
+      <div class="sec-head-line"></div></div>""", unsafe_allow_html=True)
+
     if gs.event_log:
         for msg in gs.event_log:
-            st.markdown(f'<div class="log-line">• {msg}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="log">• {msg}</div>', unsafe_allow_html=True)
     else:
-        st.info("No events yet.")
+        st.markdown('<div class="hint">No events yet this fund.</div>', unsafe_allow_html=True)
+
     if gs.exited:
-        st.markdown("<h2>🏆 Exits</h2>", unsafe_allow_html=True)
+        st.markdown("""<div class="sec-head" style="margin-top:1rem">
+          <span style="font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Exit History</span>
+          <div class="sec-head-line"></div></div>""", unsafe_allow_html=True)
         for e in reversed(gs.exited):
+            dot = SECTOR_DOT[e['sector']]
             st.markdown(f"""
             <div style="display:flex;justify-content:space-between;align-items:center;
-                 padding:.45rem .8rem;background:var(--card);border-radius:9px;margin-bottom:.25rem;">
-              <span>{SECTORS[e['sector']]['emoji']} <strong>{e['name']}</strong>
-                <span class="c-muted" style="font-size:.7rem;"> · {e['yh']:.1f}yr</span></span>
-              <span class="{mc(e['moic'])}">{e['moic']:.2f}×</span>
-              <span class="c-muted">{e['irr']*100:.0f}% IRR · {cf(e['proc'])}</span>
+                 padding:.65rem 1rem;background:var(--s1);border:1px solid var(--border);
+                 border-radius:14px;margin-bottom:.35rem;">
+              <span>
+                <span class="sector-dot" style="background:{dot}"></span>
+                <strong>{e['name']}</strong>
+                <span class="mu" style="font-size:.72rem"> · {e['yh']:.1f}yr</span>
+              </span>
+              <span class="num-sm {mc(e['moic'])}">{e['moic']:.2f}×</span>
+              <span class="mu" style="font-size:.78rem">{e['irr']*100:.0f}% IRR · {cf(e['proc'])}</span>
             </div>""", unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
 # TAB: FUND
 # ─────────────────────────────────────────────
 def tab_fund(gs:GameState):
-    st.markdown("<hr>", unsafe_allow_html=True)
-    cfg = DIFFICULTY[gs.difficulty]
-    paths = check_paths(gs)
-    fn = gs.fund_number
-    fl = f"Fund {'I' if fn==1 else 'II' if fn==2 else 'III'}"
+    cfg    = DIFFICULTY[gs.difficulty]
+    paths  = check_paths(gs)
+    fn     = gs.fund_number
+    fl     = f"Fund {'I' if fn==1 else 'II' if fn==2 else 'III'}"
     unlock = UNLOCKS[sum(1 for p in paths.values() if p["hit"])]
     next_cash = cfg["cash"] * unlock["cash_mult"] * gs.fund_cash_mult
+    raised = cfg["cash"] * gs.fund_cash_mult
+    realized = sum(e["proc"] for e in gs.exited)
 
-    st.markdown(f"<h2>💰 {fl} · {gs.firm_name}</h2>", unsafe_allow_html=True)
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Raised", cf(cfg["cash"] * gs.fund_cash_mult))
-    c2.metric("Deployed", cf(cfg["cash"] * gs.fund_cash_mult - gs.cash))
-    c3.metric("Realized", cf(sum(e["proc"] for e in gs.exited)))
+    st.markdown(f"""<div class="sec-head">
+      <span style="font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">{fl}</span>
+      <div class="sec-head-line"></div></div>""", unsafe_allow_html=True)
 
-    st.markdown("<h2>Win Paths</h2>", unsafe_allow_html=True)
+    c1,c2,c3 = st.columns(3)
+    for col,v,l in [(c1,cf(raised),"Raised"),(c2,cf(raised-gs.cash),"Deployed"),(c3,cf(realized),"Realized")]:
+        with col:
+            st.markdown(f'<div class="pill-card"><div class="num-sm">{v}</div><div class="lbl">{l}</div></div>',
+                        unsafe_allow_html=True)
+
+    st.markdown("""<div class="sec-head" style="margin-top:1rem">
+      <span style="font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Win Paths</span>
+      <div class="sec-head-line"></div></div>""", unsafe_allow_html=True)
     for p in paths.values():
-        pct = min(p["actual"] / max(p["target"], 1), 1.0)
+        pct   = min(p["actual"] / max(p["target"], 1), 1.0)
         bar_w = int(pct * 100)
-        color = "#10b981" if p["hit"] else ("#f59e0b" if pct > 0.6 else "#64748b")
-        tick = "✅" if p["hit"] else ""
+        col   = "#4ade80" if p["hit"] else ("#fbbf24" if pct>0.6 else "#374151")
+        tick  = "✓ " if p["hit"] else ""
         st.markdown(f"""
-        <div style="margin:.4rem 0;">
-          <div style="display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:.2rem;">
-            <span>{tick} {p['label']}</span>
-            <span style="color:{color};">{p['actual']} / {p['target']}</span>
+        <div style="margin:.45rem 0">
+          <div style="display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:.3rem">
+            <span>{tick}<strong>{p['label']}</strong></span>
+            <span style="color:{col};font-weight:700">{p['actual']} / {p['target']}</span>
           </div>
-          <div style="background:var(--card2);border-radius:999px;height:8px;overflow:hidden;">
-            <div style="width:{bar_w}%;height:8px;background:{color};border-radius:999px;transition:width .4s;"></div>
+          <div style="background:var(--s3);border-radius:999px;height:6px;overflow:hidden">
+            <div style="width:{bar_w}%;height:6px;background:{col};border-radius:999px;
+                 box-shadow:0 0 6px {col}88;transition:width .4s"></div>
           </div>
         </div>""", unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown(f"""<div class="unlock-card">
-      <div style="font-size:.68rem;color:var(--gold);font-weight:700;text-transform:uppercase;
-           letter-spacing:.07em;margin-bottom:.3rem;">🔓 On Track For</div>
-      <h2 style="margin:0;color:var(--gold);">{unlock['fund']} — {cf(next_cash)}</h2>
-      <p style="font-size:.83rem;margin:.35rem 0 0;">{unlock['flavor']}</p>
+    st.markdown(f"""<div class="unlock-card" style="margin-top:1rem">
+      <div style="font-size:.66rem;color:var(--gold);font-weight:700;text-transform:uppercase;
+           letter-spacing:.08em;margin-bottom:.35rem">🔓 On Track For</div>
+      <div class="num-sm" style="color:var(--gold)">{unlock['fund']} — {cf(next_cash)}</div>
+      <div style="font-size:.82rem;color:var(--muted);margin:.35rem 0 0">{unlock['flavor']}</div>
     </div>""", unsafe_allow_html=True)
 
-    st.markdown("<h2>LPs</h2>", unsafe_allow_html=True)
+    st.markdown("""<div class="sec-head" style="margin-top:1rem">
+      <span style="font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">LPs</span>
+      <div class="sec-head-line"></div></div>""", unsafe_allow_html=True)
     for lp_name in LP_NAMES:
-        lp_happy = gs.lp_satisfaction >= 60
+        ok = gs.lp_satisfaction >= 60
+        col = "#4ade80" if ok else "#fbbf24"
+        lbl = "Satisfied" if ok else "Restless"
         st.markdown(f"""
-        <div style="display:flex;justify-content:space-between;padding:.45rem .8rem;
-             background:var(--card);border-radius:9px;margin-bottom:.25rem;">
-          <span>{lp_name}</span>
-          <span style="color:{'#10b981' if lp_happy else '#f59e0b'};">
-            {'Satisfied' if lp_happy else 'Restless'}</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;
+             padding:.6rem 1rem;background:var(--s1);border:1px solid var(--border);
+             border-radius:14px;margin-bottom:.35rem">
+          <span style="font-weight:600">{lp_name}</span>
+          <span style="color:{col};font-size:.8rem;font-weight:700">{lbl}</span>
         </div>""", unsafe_allow_html=True)
 
 
@@ -913,21 +1140,20 @@ def tab_fund(gs:GameState):
 # EVENT SCREEN (interrupts any tab)
 # ─────────────────────────────────────────────
 def screen_event(gs:GameState):
-    ev = gs.pending_event
+    ev  = gs.pending_event
     css = {"crisis":"ev-crisis","opportunity":"ev-opportunity",
-           "rival":"ev-rival","lp":"ev-lp","season":"ev-season"}.get(ev.get("type",""),"")
+           "rival":"ev-rival","lp":"ev-lp","season":"ev-season"}.get(ev.get("type",""),"ev-season")
 
-    st.markdown("<hr>", unsafe_allow_html=True)
     st.markdown(f"""
-    <div class="ev-card {css}">
-      <div style="font-size:1.7rem;margin-bottom:.35rem;">{ev.get('icon','📋')}</div>
-      <h2 style="margin:0 0 .55rem;">{ev.get('title','')}</h2>
-      <p style="font-size:.91rem;color:var(--text);line-height:1.6;">{ev.get('text','')}</p>
+    <div class="ev {css}">
+      <div style="font-size:2rem;margin-bottom:.5rem">{ev.get('icon','📋')}</div>
+      <h2 style="margin:0 0 .6rem;font-size:1.15rem">{ev.get('title','')}</h2>
+      <p style="font-size:.9rem;color:var(--text);line-height:1.65">{ev.get('text','')}</p>
     </div>""", unsafe_allow_html=True)
 
     choices = ev.get("choices", [])
     if ev.get("type") != "season":
-        st.markdown("<p style='font-size:.83rem;color:var(--muted);margin:.5rem 0 .25rem;'>What do you do?</p>",
+        st.markdown("<p style='font-size:.78rem;color:var(--muted);margin:.55rem 0 .3rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em'>What do you do?</p>",
                     unsafe_allow_html=True)
 
     cols = st.columns(max(len(choices), 1))
@@ -950,42 +1176,49 @@ def screen_event(gs:GameState):
 # ─────────────────────────────────────────────
 def screen_start():
     st.markdown("""
-    <div style="text-align:center;padding:2rem 0 1.25rem;">
-      <div style="font-size:46px;margin-bottom:.6rem;">💼</div>
-      <h1 style="font-size:2.4rem;background:linear-gradient(135deg,#10b981,#f59e0b);
-          -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:0;">
+    <div style="text-align:center;padding:2.5rem 0 1.5rem">
+      <div style="font-size:3.2rem;margin-bottom:.75rem;filter:drop-shadow(0 0 24px rgba(74,222,128,.4))">💼</div>
+      <h1 style="font-size:3rem;font-weight:800;letter-spacing:-.04em;
+          background:linear-gradient(135deg,#4ade80 0%,#a78bfa 55%,#fbbf24 100%);
+          -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:0">
         CarryForge
       </h1>
-      <p style="color:#64748b;margin:.4rem 0 1.1rem;">Buy companies. Grow them. Exit for profit.</p>
+      <p style="color:var(--muted);font-size:.95rem;margin:.55rem 0 1.75rem;font-weight:500">
+        Build your PE empire · Three ways to win · No two games the same
+      </p>
     </div>""", unsafe_allow_html=True)
 
     with st.form("setup"):
         c1, c2 = st.columns(2)
-        with c1: firm=st.text_input("Firm name",placeholder=random.choice(FIRM_DEFAULTS))
-        with c2: partner=st.text_input("Your name",placeholder="e.g. Alex Chen")
-        diff=st.radio("Difficulty",["Easy","Balanced","Hard"],horizontal=True,index=1,
-                      captions=["$60M · relaxed","$50M · realistic","$40M · brutal"])
-        p=DIFFICULTY[diff]["paths"]
-        st.markdown(f"""<div style="background:var(--card);border:1px solid var(--border);
-             border-radius:11px;padding:.8rem 1rem;margin:.55rem 0;">
-          <div style="font-size:.68rem;color:var(--muted);margin-bottom:.4rem;font-weight:700;
-               text-transform:uppercase;letter-spacing:.06em;">Three ways to win (hit any one)</div>
-          <div style="display:flex;gap:1rem;flex-wrap:wrap;font-size:.83rem;">
-            <span>💰 Hit {p['moic']}× MOIC</span>
-            <span>🤝 Keep LPs ≥{p['lp']}</span>
-            <span>🏆 {p['exits']} exits</span>
-          </div></div>""", unsafe_allow_html=True)
-        if st.form_submit_button("Start Fund I →"):
-            ph=random.choice(FIRM_DEFAULTS); cfg=DIFFICULTY[diff]
-            gs=GameState(screen="game",difficulty=diff,cash=cfg["cash"],
+        with c1: firm    = st.text_input("Firm name",   placeholder=random.choice(FIRM_DEFAULTS))
+        with c2: partner = st.text_input("Your name",   placeholder="e.g. Alex Chen")
+
+        diff = st.radio("Difficulty", ["Easy","Balanced","Hard"], horizontal=True, index=1,
+                        captions=["$60M · relaxed","$50M · realistic","$40M · brutal"])
+        p = DIFFICULTY[diff]["paths"]
+        st.markdown(f"""
+        <div style="background:var(--s1);border:1px solid var(--border-lit);border-radius:16px;
+             padding:1rem 1.2rem;margin:.7rem 0">
+          <div style="font-size:.65rem;color:var(--muted);margin-bottom:.5rem;font-weight:700;
+               text-transform:uppercase;letter-spacing:.1em">Three ways to win — hit any one</div>
+          <div style="display:flex;gap:1.1rem;flex-wrap:wrap;font-size:.85rem;font-weight:600">
+            <span style="color:var(--lime)">💰 {p['moic']}× MOIC</span>
+            <span style="color:var(--teal)">🤝 LPs ≥{p['lp']}</span>
+            <span style="color:var(--gold)">🏆 {p['exits']} exits</span>
+          </div>
+        </div>""", unsafe_allow_html=True)
+
+        if st.form_submit_button("Launch Fund I  →"):
+            ph  = random.choice(FIRM_DEFAULTS); cfg = DIFFICULTY[diff]
+            gs  = GameState(screen="game", difficulty=diff, cash=cfg["cash"],
                 lp_satisfaction=cfg["lp_start"],
                 firm_name=firm.strip() or ph,
                 partner_name=partner.strip() or "Alex",
                 rival=random.choice(RIVAL_FIRMS))
-            gs.deals=make_deals(gs,5)
-            st.session_state.gs=gs
-            st.session_state.tab="home"
-            st.session_state["score_sound_played"]=False
+            gs.deals = make_deals(gs, 5)
+            st.session_state.gs  = gs
+            st.session_state.tab = "home"
+            st.session_state["score_sound_played"] = False
             st.rerun()
 
 
@@ -1052,17 +1285,20 @@ def screen_score():
     next_cash=DIFFICULTY[gs.difficulty]["cash"]*unlock["cash_mult"]*gs.fund_cash_mult
 
     st.markdown(f"""
-    <div class="score-box">
-      <div style="font-size:.72rem;color:var(--muted);margin-bottom:.2rem;">{gs.firm_name} · {fl} Complete</div>
-      <div style="font-size:3rem;font-weight:900;color:{gc};">{grade}</div>
-      <h1 style="margin:.3rem 0;">{n_hit}/3 paths hit</h1>
-      <p style="font-size:.86rem;margin-bottom:1rem;">{lp_quote}</p>
-      <div style="display:flex;justify-content:space-around;margin:.5rem 0 1.1rem;">
-        <div class="stat"><div class="stat-val" style="color:{gc};">{bm:.2f}×</div><div class="stat-lbl">MOIC</div></div>
-        <div class="stat"><div class="stat-val">{len(gs.exited)}</div><div class="stat-lbl">Exits</div></div>
-        <div class="stat"><div class="stat-val">{cf(realized)}</div><div class="stat-lbl">Realized</div></div>
-        <div class="stat"><div class="stat-val" style="color:{lpc(gs.lp_satisfaction)};">{gs.lp_satisfaction}</div>
-          <div class="stat-lbl">LPs</div></div>
+    <div class="score-card">
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:.25rem;font-weight:600;
+           text-transform:uppercase;letter-spacing:.08em">{gs.firm_name} · {fl}</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:5rem;font-weight:900;
+           color:{gc};line-height:1;text-shadow:0 0 40px {gc}66">{grade}</div>
+      <div style="font-size:1.1rem;font-weight:700;margin:.4rem 0 .2rem">{n_hit}/3 paths hit</div>
+      <p style="font-size:.88rem;color:var(--muted);margin-bottom:1.5rem;max-width:360px;
+         margin-left:auto;margin-right:auto">{lp_quote}</p>
+      <div style="display:flex;justify-content:space-around;gap:.5rem;flex-wrap:wrap">
+        <div><div class="num" style="color:{gc}">{bm:.2f}×</div><div class="lbl">MOIC</div></div>
+        <div><div class="num">{len(gs.exited)}</div><div class="lbl">Exits</div></div>
+        <div><div class="num">{cf(realized)}</div><div class="lbl">Realized</div></div>
+        <div><div class="num" style="color:{lpc(gs.lp_satisfaction)}">{gs.lp_satisfaction}</div>
+          <div class="lbl">LP Score</div></div>
       </div>
     </div>""", unsafe_allow_html=True)
 
@@ -1088,32 +1324,42 @@ def screen_score():
             st.session_state["score_sound_played"]=False
             del st.session_state["gs"]; st.rerun()
 
-    st.markdown("<h2 style='text-align:center;margin-top:1rem;'>Win Paths</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align:center;margin-top:1.1rem;font-size:.9rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em'>Win Paths</h2>",
+                unsafe_allow_html=True)
     for p in paths.values():
-        css="path-result-hit" if p["hit"] else "path-result-miss"
+        css = "path-row-hit" if p["hit"] else "path-row-miss"
+        col = "#4ade80" if p["hit"] else "var(--muted)"
         st.markdown(f"""<div class="{css}">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <span class="fw7">{'✅' if p['hit'] else '◻️'} {p['label']}</span>
-            <span class="fw7" style="color:{'var(--green)' if p['hit'] else 'var(--muted)'};">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-weight:700">{'✓ ' if p['hit'] else ''}{p['label']}</span>
+            <span style="color:{col};font-weight:700;font-family:'JetBrains Mono',monospace">
               {p['actual']} {'✓' if p['hit'] else f'/ {p["target"]}'}</span>
           </div></div>""", unsafe_allow_html=True)
 
-    st.markdown(f"""<div class="unlock-card" style="margin-top:1rem;">
-      <div style="font-size:.66rem;color:var(--gold);font-weight:700;text-transform:uppercase;
-           letter-spacing:.07em;margin-bottom:.3rem;">{'🔓 Unlocked' if fn<3 else '🏆 Endgame'}</div>
-      <h2 style="margin:0;color:var(--gold);">{unlock['fund']} — {cf(next_cash)}</h2>
-      <p style="font-size:.83rem;margin:.35rem 0 0;">{unlock['flavor']}</p>
+    st.markdown(f"""<div class="unlock-card" style="margin-top:1rem">
+      <div style="font-size:.65rem;color:var(--gold);font-weight:700;text-transform:uppercase;
+           letter-spacing:.1em;margin-bottom:.4rem">{'🔓 Unlocked' if fn<3 else '🏆 Endgame'}</div>
+      <div style="font-size:1.1rem;font-weight:800;color:var(--gold)">{unlock['fund']} · {cf(next_cash)}</div>
+      <div style="font-size:.82rem;color:var(--muted);margin:.4rem 0 0">{unlock['flavor']}</div>
     </div>""", unsafe_allow_html=True)
 
     if gs.exited:
-        st.markdown("<h2 style='text-align:center;margin-top:1rem;'>Deal Recap</h2>", unsafe_allow_html=True)
-        for e in sorted(gs.exited,key=lambda x:-x["moic"]):
-            st.markdown(f"""<div style="display:flex;justify-content:space-between;padding:.48rem .8rem;
-                 background:var(--card);border-radius:9px;margin-bottom:.25rem;">
-              <span>{SECTORS[e['sector']]['emoji']} <strong>{e['name']}</strong></span>
-              <span class="{mc(e['moic'])}">{e['moic']:.2f}×</span>
-              <span class="c-muted">{e['irr']*100:.0f}% IRR · {cf(e['proc'])}</span>
+        st.markdown("<div style='margin-top:1.1rem'>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align:center;font-size:.9rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em'>Deal Recap</h2>",
+                    unsafe_allow_html=True)
+        for e in sorted(gs.exited, key=lambda x: -x["moic"]):
+            dot = SECTOR_DOT[e['sector']]
+            st.markdown(f"""<div style="display:flex;justify-content:space-between;align-items:center;
+                 padding:.6rem 1rem;background:var(--s1);border:1px solid var(--border);
+                 border-radius:14px;margin-bottom:.3rem">
+              <span>
+                <span class="sector-dot" style="background:{dot}"></span>
+                <strong>{e['name']}</strong>
+              </span>
+              <span class="num-sm {mc(e['moic'])}">{e['moic']:.2f}×</span>
+              <span class="mu" style="font-size:.78rem">{e['irr']*100:.0f}% IRR · {cf(e['proc'])}</span>
             </div>""", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────
