@@ -29,9 +29,9 @@ SEASONS = {
     3:{"exit_mod":0.85,"growth_mod":0.88},
 }
 DIFFICULTY = {
-    "Casual":   {"cash":70e6,"exit_mult":10.0,"quarters":12,"lp_start":82,"paths":{"moic":1.5,"lp":60,"exits":2}},
-    "Balanced": {"cash":50e6,"exit_mult":8.5, "quarters":12,"lp_start":72,"paths":{"moic":1.8,"lp":62,"exits":3}},
-    "Hardcore": {"cash":35e6,"exit_mult":7.5, "quarters":12,"lp_start":55,"paths":{"moic":2.2,"lp":58,"exits":4}},
+    "Casual":   {"cash":70e6,"exit_mult":10.5,"quarters":12,"lp_start":85,"paths":{"moic":1.3,"lp":52,"exits":1}},
+    "Balanced": {"cash":50e6,"exit_mult":9.2, "quarters":12,"lp_start":72,"paths":{"moic":1.8,"lp":62,"exits":3}},
+    "Hardcore": {"cash":35e6,"exit_mult":8.0, "quarters":12,"lp_start":55,"paths":{"moic":2.2,"lp":58,"exits":4}},
 }
 EFFECTS_MOIC = {
     "ceo_stays":+.16,"ceo_slows":-.08,"ceo_gone":-.18,"ceo_fired_clean":-.18,
@@ -82,6 +82,21 @@ def make_deals(gs,n=5,rng=None):
         deals.append(Co(id=str(rng.random()),sector=s,revenue=rev,ebitda=eb,
             margin=mg,growth=gr,entry_mult=em,entry_ev=ev,entry_debt=debt,
             entry_equity=eq,entry_q=gs.q))
+    # Guarantee >=2 affordable deals
+    budget=max(gs.cash*0.55, DIFFICULTY[gs.diff]["cash"]*0.40)
+    aff=[d for d in deals if d.entry_equity<=budget]
+    if len(aff)<2:
+        for _ in range(8):
+            s2=rng.choice(list(SECTORS)); p2=SECTORS[s2]
+            rev2=rng.uniform(p2["rev"][0],p2["rev"][0]+(p2["rev"][1]-p2["rev"][0])*.4)*1e6
+            mg2=rng.uniform(*p2["margin"]); eb2=rev2*mg2; gr2=rng.uniform(*p2["growth"])
+            em2=round(rng.uniform(6.2,7.6),1); ev2=eb2*em2
+            debt2=eb2*rng.uniform(2.8,4.0); eq2=max(ev2-debt2,ev2*0.08)
+            if eq2<=budget:
+                c2=Co(id=str(rng.random()),sector=s2,revenue=rev2,ebitda=eb2,margin=mg2,
+                    growth=gr2,entry_mult=em2,entry_ev=ev2,entry_debt=debt2,entry_equity=eq2,entry_q=gs.q)
+                deals.append(c2); aff.append(c2)
+                if len(aff)>=2: break
     return deals
 
 def calc(c,gs):

@@ -336,6 +336,21 @@ div[data-testid="stTabs"] > div:last-child {
   .desktop-section.cf-active { display: block !important; }
 }
 
+/* ── Value Creation Levers ────────────────────────────────────────────── */
+  .lever-grid { display:flex; gap:.3rem; flex-wrap:wrap; margin-top:.4rem; }
+  .lever-btn {
+    background:#141928; border:1px solid rgba(255,255,255,.1); border-radius:7px;
+    padding:.24rem .58rem; font-size:.68rem; font-weight:700; color:#94a3b8;
+    cursor:pointer; font-family:'Space Grotesk',sans-serif; transition:all .15s;
+  }
+  .lever-btn:hover { border-color:#4ade80; color:#4ade80; }
+  .lever-btn.active { background:rgba(74,222,128,.12); border-color:#4ade80; color:#4ade80; }
+  .lever-btn.cooldown { opacity:.32; cursor:not-allowed; }
+  .lever-btn.expensive { opacity:.38; cursor:not-allowed; }
+  .lever-outcome { font-size:.7rem; font-weight:600; margin-top:.28rem; }
+  .lever-outcome.win  { color:#4ade80; }
+  .lever-outcome.loss { color:#f87171; }
+
 /* ── Mobile ─────────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .block-container { padding: .65rem .65rem 5.5rem !important; }
@@ -436,9 +451,9 @@ LP_CHARACTERS = [
 FIRM_DEFAULTS = ["Genesis Capital","Ironwood Partners","Crestview Equity","Summit PE","Clarendon Fund","Northstar PE"]
 
 DIFFICULTY = {
-    "Casual":   {"cash":70e6,"exit_mult":10.0,"quarters":12,"lp_start":82,"lp_floor":25,"paths":{"moic":1.5,"lp":60,"exits":2}},
-    "Balanced": {"cash":50e6,"exit_mult":8.5, "quarters":12,"lp_start":72,"lp_floor":20,"paths":{"moic":1.8,"lp":62,"exits":3}},
-    "Hardcore": {"cash":35e6,"exit_mult":7.5, "quarters":12,"lp_start":55,"lp_floor":15,"paths":{"moic":2.2,"lp":58,"exits":4}},
+    "Casual":   {"cash":70e6,"exit_mult":10.5,"quarters":12,"lp_start":85,"lp_floor":28,"paths":{"moic":1.3,"lp":52,"exits":1}},
+    "Balanced": {"cash":50e6,"exit_mult":9.2, "quarters":12,"lp_start":72,"lp_floor":20,"paths":{"moic":1.8,"lp":62,"exits":3}},
+    "Hardcore": {"cash":35e6,"exit_mult":8.0, "quarters":12,"lp_start":55,"lp_floor":15,"paths":{"moic":2.2,"lp":58,"exits":4}},
 }
 
 UNLOCKS = {
@@ -612,6 +627,87 @@ EFFECTS = {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
+# VALUE CREATION LEVERS — player-driven company initiatives
+# Each lever: cost in cash, success_rate, moic boost on success, moic penalty
+# on failure. Applied at the start of next quarter.
+# ─────────────────────────────────────────────────────────────────────────────
+
+LEVERS = {
+    "sales_push": {
+        "label": "Sales Push",
+        "short": "Sales",
+        "desc": "Drive revenue aggressively — new reps, incentives, pipeline blitz",
+        "cost": 0,
+        "success_rate": 0.65,
+        "win_moic": +0.12,
+        "loss_moic": -0.06,
+        "win_msg": "Sales initiative landed. Pipeline strong. CEO insufferable about it.",
+        "loss_msg": "Overpromised to close deals. Churn starting.",
+        "cooldown": 2,
+    },
+    "cost_cut": {
+        "label": "Cost Restructuring",
+        "short": "Cut Costs",
+        "desc": "Cut SG&A and headcount to expand EBITDA margins",
+        "cost": 0,
+        "success_rate": 0.68,
+        "win_moic": +0.09,
+        "loss_moic": -0.08,
+        "win_msg": "Costs trimmed 13%. Margins expanding ahead of plan.",
+        "loss_msg": "Two senior engineers resigned during restructuring.",
+        "cooldown": 3,
+    },
+    "bolt_on": {
+        "label": "Bolt-On M&A",
+        "short": "Bolt-On",
+        "desc": "Acquire a smaller competitor for $8M",
+        "cost": 8_000_000,
+        "success_rate": 0.58,
+        "win_moic": +0.19,
+        "loss_moic": -0.07,
+        "win_msg": "Tuck-in complete. EBITDA up 19%. CEO takes full credit.",
+        "loss_msg": "Integration rocky. Six months of management distraction.",
+        "cooldown": 4,
+    },
+    "exec_hire": {
+        "label": "Executive Hire",
+        "short": "Hire Exec",
+        "desc": "Recruit an A-player exec (CEO/CFO/CRO). Recruiting fees: $400K",
+        "cost": 400_000,
+        "success_rate": 0.70,
+        "win_moic": +0.13,
+        "loss_moic": -0.09,
+        "win_msg": "New exec excellent. GTM restructured in 45 days.",
+        "loss_msg": "Culture clash. Two other leaders quit in protest.",
+        "cooldown": 3,
+    },
+    "market_expand": {
+        "label": "Market Expansion",
+        "short": "Expand",
+        "desc": "Enter a new geography or customer segment. Cost: $2.5M",
+        "cost": 2_500_000,
+        "success_rate": 0.52,
+        "win_moic": +0.21,
+        "loss_moic": -0.05,
+        "win_msg": "New market working. Revenue trajectory fundamentally changed.",
+        "loss_msg": "Expansion slower than modeled. 18-month payback horizon.",
+        "cooldown": 4,
+    },
+    "exit_prep": {
+        "label": "Exit Prep",
+        "short": "Exit Prep",
+        "desc": "Engage bankers, clean books, prepare data room. Cost: $800K",
+        "cost": 800_000,
+        "success_rate": 0.80,
+        "win_moic": +0.08,
+        "loss_moic": -0.02,
+        "win_msg": "Data room clean. Strategics inbound. Multiple bidders forming.",
+        "loss_msg": "Due diligence surfaced some surprises. Buyers cautious.",
+        "cooldown": 5,
+    },
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
 # DATA MODELS
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -622,6 +718,14 @@ class Company:
     entry_multiple: float; entry_ev: float; entry_debt: float; entry_equity: float
     entry_quarter: int = 0; moic_modifier: float = 1.0; tier: str = "standard"
     pitch: str = ""
+    # Value creation levers
+    pending_lever: str = ""          # selected this quarter, resolved on advance
+    lever_cooldowns: dict = None     # lever_id → quarter last used
+    lever_history: list = None       # [{q, lever, outcome, msg}]
+
+    def __post_init__(self):
+        if self.lever_cooldowns is None: self.lever_cooldowns = {}
+        if self.lever_history   is None: self.lever_history   = []
 
 @dataclass
 class GameState:
@@ -1003,10 +1107,29 @@ def advance_quarter(gs: GameState):
     prev = gs.season
     gs.quarter_num += 1
     gs.sound_queue.append("TICK")
+
+    # ── Resolve pending value creation levers ────────────────────────────
+    for c in gs.companies:
+        if c.pending_lever and c.pending_lever in LEVERS:
+            lev = LEVERS[c.pending_lever]
+            won = random.random() < lev["success_rate"]
+            effect = lev["win_moic"] if won else lev["loss_moic"]
+            c.moic_modifier = max(0.10, min(c.moic_modifier + effect, 3.0))
+            msg = (lev["win_msg"] if won else lev["loss_msg"])
+            result = "WIN" if won else "MISS"
+            gs.event_log.insert(0, f"{c.name} · {lev['label']}: [{result}] {msg}")
+            gs.event_log = gs.event_log[:8]
+            c.lever_history.append({"q": gs.quarter_num, "lever": c.pending_lever,
+                                     "outcome": result, "msg": msg})
+            c.lever_cooldowns[c.pending_lever] = gs.quarter_num
+            c.pending_lever = ""
+            if won: gs.sound_queue.append("OPPORTUNITY")
+            else:   gs.sound_queue.append("CRISIS")
+
     if not gs.exited and gs.quarter_num > 4:
         lp_floor = DIFFICULTY[gs.difficulty].get("lp_floor", 15)
         gs.lp_satisfaction = max(lp_floor, gs.lp_satisfaction - 3)
-        gs.event_log.insert(0, f"LP satisfaction −3 this quarter (no exits yet). Exit a company to stabilize.")
+        gs.event_log.insert(0, "LP satisfaction −3 this quarter (no exits yet). Exit a company to stabilize.")
         gs.event_log = gs.event_log[:8]
     gs.deals = make_deals(gs, 5)
     if gs.quarter_num >= gs.total_quarters:
@@ -1016,7 +1139,7 @@ def advance_quarter(gs: GameState):
         gs.season_shown = new; si = SEASONS[new]
         gs.sound_queue.append("SEASON")
         gs.pending_event = {"id": f"season_{new}", "type": "season",
-            "title": si["title"], "icon": si["emoji"], "text": si["text"],
+            "title": si["title"], "icon": "", "text": si["text"],
             "choices": [{"label": "Got it. Keep moving.", "effect": "nothing"}], "cid": None}
         return
     if random.random() < 0.45:
@@ -1415,6 +1538,50 @@ def tab_portfolio(gs: GameState):
             btn_lbl = "Sell" + (" ←" if good_exit else "")
             if st.button(btn_lbl, key=f"sell_{i}_{gs.quarter_num}", type="primary" if good_exit else "secondary"):
                 sell_idx = i
+
+        # ── Value Creation Levers ────────────────────────────────────────
+        lever_html = '<div class="lever-grid">'
+        active = c.pending_lever
+        for lid, lev in LEVERS.items():
+            on_cd = (c.lever_cooldowns.get(lid, -99) > gs.quarter_num - lev["cooldown"])
+            too_expensive = lev["cost"] > 0 and lev["cost"] > gs.cash
+            css_cls = ("active" if lid == active
+                       else "cooldown" if on_cd
+                       else "expensive" if too_expensive
+                       else "")
+            cost_str = f" +{cf(lev['cost'])}" if lev["cost"] > 0 else ""
+            sr = int(lev['success_rate']*100)
+            title = f"title=\"{lev['desc']}  |  {sr}% success  |  +{lev['win_moic']*100:.0f}% win / {lev['loss_moic']*100:.0f}% loss\""
+            lever_html += f'<button class="lever-btn {css_cls}" {title}>{lev["short"]}{cost_str}</button>'
+        lever_html += '</div>'
+        # Last lever outcome
+        if c.lever_history:
+            last = c.lever_history[-1]
+            ok = last["outcome"] == "WIN"
+            cls = "lever-outcome-win" if ok else "lever-outcome-loss"
+            lever_html += f'<div class="{cls}" style="margin-top:.3rem;font-size:.7rem">Last: {last["lever"]} — {last["msg"][:60]}</div>'
+        st.markdown(lever_html, unsafe_allow_html=True)
+
+        # Lever click detection via radio (hidden label = lever id)
+        lever_pick = st.radio("", ["—"] + list(LEVERS.keys()),
+                              key=f"lev_{c.id}_{gs.quarter_num}",
+                              horizontal=True, label_visibility="collapsed",
+                              index=0 if not active else list(LEVERS.keys()).index(active)+1)
+        if lever_pick != "—" and lever_pick != active:
+            lev = LEVERS[lever_pick]
+            on_cd = (c.lever_cooldowns.get(lever_pick,-99) > gs.quarter_num - lev["cooldown"])
+            if not on_cd and (lev["cost"] == 0 or lev["cost"] <= gs.cash):
+                if lev["cost"] > 0: gs.cash -= lev["cost"]
+                c.pending_lever = lever_pick
+                gs.event_log.insert(0, f"{c.name}: {lev['label']} queued for next quarter.")
+                gs.event_log = gs.event_log[:8]
+                st.rerun()
+        elif lever_pick == "—" and active:
+            # Cancel a pending lever (refund cash cost)
+            lev = LEVERS[active]
+            if lev["cost"] > 0: gs.cash += lev["cost"]
+            c.pending_lever = ""
+            st.rerun()
 
     if sell_idx is not None:
         m     = calc(gs.companies[sell_idx], gs)
