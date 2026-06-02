@@ -710,7 +710,7 @@ def flush_sounds(gs: GameState, extra: str = ""):
     <div style="width:1px;height:1px;opacity:0"><!-- {_r.random()} --></div>
     """
     b64 = base64.b64encode(html.encode()).decode()
-    st.iframe(f"data:text/html;base64,{b64}", height=1, scrolling=False)
+    st.iframe(f"data:text/html;base64,{b64}", height=1)
 
 
 def inject_bottom_nav(active_tab:str, has_event:bool=False):
@@ -794,7 +794,7 @@ def inject_bottom_nav(active_tab:str, has_event:bool=False):
     <div style="width:1px;height:1px;opacity:0"><!-- {_r.random()} --></div>
     """
     b64 = base64.b64encode(html.encode()).decode()
-    st.iframe(f"data:text/html;base64,{b64}", height=1, scrolling=False)
+    st.iframe(f"data:text/html;base64,{b64}", height=1)
 
 
 # ─────────────────────────────────────────────
